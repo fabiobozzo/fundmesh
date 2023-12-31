@@ -1,0 +1,32 @@
+{
+  "name": "fundmesh",
+  "version": "0.0.1",
+  "description": "FundMesh is a crowd funding DApp",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fabiobozzo/fundmesh.git"
+  },
+  "author": "Fabio Bozzo <fabio.bozzo@gmail.com>",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/fabiobozzo/fundmesh/issues"
+  },
+  "homepage": "https://github.com/fabiobozzo/fundmesh#readme",
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.1",
+    "@truffle/hdwallet-provider": "^2.1.15",
+    "dotenv": "^16.3.1",
+    "fs-extra": "^11.2.0",
+    "ganache": "^7.9.2",
+    "mocha": "^10.2.0",
+    "solc": "^0.8.23-fixed",
+    "web3": "^4.3.0"
+  }
+}
