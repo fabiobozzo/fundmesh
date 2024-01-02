@@ -136,4 +136,24 @@ describe('Milestones', () => {
     assert.equal(milestone2.threshold, projectData.threshold2);
     assert.equal(milestone3.threshold, projectData.threshold3);
   });
+
+  it('rejects approvals for a project that has pending milestones', async () => {
+    let success = true;
+
+    await project.methods
+      .createMilestone('Milestone1', projectData.threshold1.toString(), accounts[1])
+      .send({ from: accounts[0], gas: '140000' });
+
+    await project.methods.contribute().send({ from: accounts[2], value: ((Math.floor(projectData.targetContribution / 2))).toString() });
+    await project.methods.contribute().send({ from: accounts[3], value: ((Math.floor(projectData.targetContribution / 2)) + 100).toString() });
+
+    try {
+      await project.methods.approve().send({ from: accounts[2], gas: '140000' });
+      success = false
+    } catch (err) {
+      assert(err);
+    } finally {
+      assert(success);
+    }
+  });
 });

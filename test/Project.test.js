@@ -8,6 +8,7 @@ beforeEach(async () => {
   let accounts;
   let projectFactory;
   let project;
+  let projectNft;
   await setup(web3);
 });
 
@@ -24,7 +25,7 @@ describe('Project', () => {
     const summary = await project.methods.getSummary().call();
 
     assert.equal(summary[0], 0); // balance
-    assert.equal(summary[1], accounts[1]); //recipient
+    assert.equal(summary[1], projectData.recipient);
     assert.equal(summary[2], projectData.cid);
     assert.equal(summary[3], projectData.minimumContribution);
     assert.equal(summary[4], projectData.targetContribution);
@@ -37,7 +38,7 @@ describe('Project', () => {
     assert.equal(summary[11], 0); // completed timestamp
   });
 
-  it('validates users min/max contributions', async () => {
+  it('rejects contributions that are over the target or lower than the minimum', async () => {
     let success = true;
 
     try {
@@ -91,5 +92,183 @@ describe('Project', () => {
     const summary = await project.methods.getSummary().call();
     assert.equal(summary[0], balance);
     assert.equal(summary[6], contributorsCount);
+  });
+
+  it('rejects approvals before the target contribution of the project is reached', async () => {
+    let success = true;
+
+    try {
+      await project.methods.approve().send({ from: accounts[2], gas: '140000' });
+      success = false
+    } catch (err) {
+      assert(err);
+    } finally {
+      assert(success);
+    }
+  });
+
+  it('rejects approvals from users that are not contributors to the project', async () => {
+    let success = true;
+
+    await project.methods.contribute().send({ from: accounts[2], value: ((Math.floor(projectData.targetContribution / 2))).toString() });
+    await project.methods.contribute().send({ from: accounts[3], value: ((Math.floor(projectData.targetContribution / 2)) + 100).toString() });
+
+    try {
+      await project.methods.approve().send({ from: accounts[4], gas: '140000' });
+      success = false
+    } catch (err) {
+      assert(err);
+    } finally {
+      assert(success);
+    }
+  });
+
+  it('rejects double approvals', async () => {
+    let success = true;
+
+    await project.methods.contribute().send({ from: accounts[2], value: ((Math.floor(projectData.targetContribution / 2))).toString() });
+    await project.methods.contribute().send({ from: accounts[3], value: ((Math.floor(projectData.targetContribution / 2)) + 100).toString() });
+    await project.methods.approve().send({ from: accounts[2], gas: '140000' });
+
+    try {
+      await project.methods.approve().send({ from: accounts[2], gas: '140000' });
+      success = false
+    } catch (err) {
+      assert(err);
+    } finally {
+      assert(success);
+    }
+  });
+
+  it('allows users to approve a project that reached its target contribution and a quorum of approvals', async () => {
+    await project.methods.contribute().send({ from: accounts[2], value: ((Math.floor(projectData.targetContribution / 3)) - 1).toString() });
+    await project.methods.contribute().send({ from: accounts[3], value: ((Math.floor(projectData.targetContribution / 3)) - 1).toString() });
+    await project.methods.contribute().send({ from: accounts[4], value: ((Math.floor(projectData.targetContribution / 3)) + 100).toString() });
+
+    await project.methods.approve().send({ from: accounts[2], gas: '140000' });
+    const statusBefore = await project.methods.status().call();
+    assert.equal(false, statusBefore.approved);
+
+    await project.methods.approve().send({ from: accounts[3], gas: '140000' });
+    const statusAfter = await project.methods.status().call();
+    assert.equal(true, statusAfter.approved);
+    assert.equal(2, statusAfter.approvalsCount);
+    assert(statusAfter.approvedAt > 0);
+
+    const approval2 = await project.methods.getApproval(accounts[2]).call();
+    const approval3 = await project.methods.getApproval(accounts[3]).call();
+    const approval4 = await project.methods.getApproval(accounts[4]).call();
+
+    assert(approval2 > 0);
+    assert(approval3 > 0);
+    assert(approval4 == 0);
+  });
+
+  it('rejects a reward if the project is not yet approved', async () => {
+    let success = true;
+
+    await project.methods.contribute().send({ from: accounts[2], value: ((Math.floor(projectData.targetContribution / 2))).toString() });
+    await project.methods.contribute().send({ from: accounts[3], value: ((Math.floor(projectData.targetContribution / 2)) + 1).toString() });
+
+    try {
+      await project.methods.reward('').send({ from: accounts[2], gas: '1400000' });
+      success = false;
+    } catch (err) {
+      assert(err);
+    } finally {
+      assert(success);
+    }
+  });
+
+  it('rejects a reward if the requestor was not a contributor to the project', async () => {
+    let success = true;
+
+    await project.methods.contribute().send({ from: accounts[2], value: ((Math.floor(projectData.targetContribution / 3)) - 1).toString() });
+    await project.methods.contribute().send({ from: accounts[3], value: ((Math.floor(projectData.targetContribution / 3)) - 1).toString() });
+    await project.methods.contribute().send({ from: accounts[4], value: ((Math.floor(projectData.targetContribution / 3)) + 100).toString() });
+    await project.methods.approve().send({ from: accounts[2], gas: '140000' });
+    await project.methods.approve().send({ from: accounts[3], gas: '140000' });
+
+    try {
+      await project.methods.reward('').send({ from: accounts[4], gas: '1400000' });
+      success = false;
+    } catch (err) {
+      assert(err);
+    } finally {
+      assert(success);
+    }
+  });
+
+  it('rejects double reward requests', async () => {
+    let success = true;
+
+    await project.methods.contribute().send({ from: accounts[2], value: ((Math.floor(projectData.targetContribution / 2))).toString() });
+    await project.methods.contribute().send({ from: accounts[3], value: ((Math.floor(projectData.targetContribution / 2)) + 1).toString() });
+    await project.methods.approve().send({ from: accounts[2], gas: '140000' });
+    await project.methods.approve().send({ from: accounts[3], gas: '140000' });
+    await project.methods.reward('').send({ from: accounts[2], gas: '1400000' });
+
+    try {
+      await project.methods.reward('').send({ from: accounts[2], gas: '1400000' });
+      success = false;
+    } catch (err) {
+      assert(err);
+    } finally {
+      assert(success);
+    }
+  });
+
+  it('allows users to receive a reward for an approved project', async () => {
+    await project.methods.contribute().send({ from: accounts[2], value: ((Math.floor(projectData.targetContribution / 3)) - 1).toString() });
+    await project.methods.contribute().send({ from: accounts[3], value: ((Math.floor(projectData.targetContribution / 3)) - 1).toString() });
+    await project.methods.contribute().send({ from: accounts[4], value: ((Math.floor(projectData.targetContribution / 3)) + 100).toString() });
+    await project.methods.approve().send({ from: accounts[2], gas: '140000' });
+    await project.methods.approve().send({ from: accounts[3], gas: '140000' });
+
+    const testTokenURI = 'ipfs://QmNpHFmk4GbJxDon2r2soYpwmrKaz1s6QfGMnBJtjA2ESd/1';
+    await project.methods.reward(testTokenURI).send({ from: accounts[3], gas: '1400000' });
+
+    const tokenURI = await projectNft.methods.tokenURI(0).call();
+    assert.equal(testTokenURI, tokenURI);
+    let balance = await projectNft.methods.balanceOf(accounts[3]).call();
+    assert.equal(1, balance);
+    balance = await projectNft.methods.balanceOf(accounts[2]).call();
+    assert.equal(0, balance);
+  });
+
+  it('rejects a withdrawal if the project is not yet approved', async () => {
+    let success = true;
+
+    await project.methods.contribute().send({ from: accounts[2], value: ((Math.floor(projectData.targetContribution / 2))).toString() });
+    await project.methods.contribute().send({ from: accounts[3], value: ((Math.floor(projectData.targetContribution / 2)) + 1).toString() });
+
+    try {
+      await project.methods.withdraw().send({ from: accounts[0], gas: '1400000' });
+      success = false;
+    } catch (err) {
+      assert(err);
+    } finally {
+      assert(success);
+    }
+  });
+
+  it('allows the owner to withdraw money from an approved project', async () => {
+    await project.methods.contribute().send({ from: accounts[2], value: ((Math.floor(projectData.targetContribution / 3)) - 1).toString() });
+    await project.methods.contribute().send({ from: accounts[3], value: ((Math.floor(projectData.targetContribution / 3)) - 1).toString() });
+    await project.methods.contribute().send({ from: accounts[4], value: ((Math.floor(projectData.targetContribution / 3)) + 100).toString() });
+    await project.methods.approve().send({ from: accounts[2], gas: '140000' });
+    await project.methods.approve().send({ from: accounts[3], gas: '140000' });
+
+    const initialRecipientBalance = await web3.eth.getBalance(projectData.recipient);
+
+    await project.methods.withdraw().send({ from: accounts[0], gas: '1400000' });
+
+    const finalRecipientBalance = await web3.eth.getBalance(projectData.recipient);
+
+    assert(finalRecipientBalance - initialRecipientBalance >= projectData.targetContribution);
+
+    const status = await project.methods.status().call();
+    assert(status.completed);
+    assert(status.completedAt > 0);
   });
 });

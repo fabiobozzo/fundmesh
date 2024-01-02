@@ -1,5 +1,6 @@
 const compiledProjectFactory = require('../build/ProjectFactory.json');
 const compiledProject = require('../build/Project.json');
+const compiledProjectNFT = require('../build/ProjectNFT.json');
 
 const projectData = {
   minimumContribution: 100,
@@ -12,6 +13,7 @@ const projectData = {
 
 const setup = async (web3) => {
   accounts = await web3.eth.getAccounts();
+  projectData.recipient = accounts[1];
 
   projectFactory = await new web3.eth.Contract(compiledProjectFactory.abi)
     .deploy({ data: compiledProjectFactory.evm.bytecode.object })
@@ -23,7 +25,7 @@ const setup = async (web3) => {
 
   await projectFactory.methods
     .createProject(
-      accounts[1],
+      projectData.recipient,
       projectData.cid,
       projectData.minimumContribution.toString(),
       projectData.targetContribution.toString(),
@@ -36,6 +38,9 @@ const setup = async (web3) => {
   let projectAddress;
   [projectAddress] = await projectFactory.methods.getDeployedProjects().call();
   project = await new web3.eth.Contract(compiledProject.abi, projectAddress);
+
+  projectNftAddress = await project.methods.nft().call();
+  projectNft = await new web3.eth.Contract(compiledProjectNFT.abi, projectNftAddress);
 };
 
 module.exports = { setup, projectData };

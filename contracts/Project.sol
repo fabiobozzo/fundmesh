@@ -88,6 +88,10 @@ contract Project {
         );
     }
 
+    function getApproval(address _address) public view returns (uint) {
+        return status.approvals[_address];
+    }
+
     function contribute() public payable {
         // The transaction value must be higher than the minimum contribution for this project
         require(msg.value > minimumContribution);
@@ -115,6 +119,11 @@ contract Project {
         // The approver cannot approve the project more than once
         require(status.approvals[msg.sender] == 0);
 
+        // All project milestones must be approved before the project can be approved
+        for (uint i = 0; i < milestoneStatuses.length; i++) {
+            require(milestoneStatuses[i].approved);
+        }
+
         status.approvals[msg.sender] = block.timestamp;
         status.approvalsCount++;
 
@@ -125,6 +134,8 @@ contract Project {
     }
 
     function reward(string memory tokenURI) public {
+        require(status.approved);
+
         // Only project approvers can be rewarded for its completion
         uint approval = status.approvals[msg.sender];
         require(approval > 0);
@@ -137,19 +148,23 @@ contract Project {
     }
 
     function withdraw() public restricted {
-        // The project must be approved first and all its milestones 
+        // The project must be approved first and all its milestones
         // must be completed in order to withdraw its final value
         require(status.approved);
         for (uint i = 0; i < milestoneStatuses.length; i++) {
             require(milestoneStatuses[i].completed);
         }
 
-
         recipient.transfer(address(this).balance);
         status.completed = true;
         status.completedAt = block.timestamp;
     }
 
+    /*
+     * ==================
+     * Milestones methods
+     * ==================
+     */
     function getMilestonesCount() public view returns (uint) {
         return milestones.length;
     }
