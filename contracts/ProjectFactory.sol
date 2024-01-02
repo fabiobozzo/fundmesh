@@ -12,7 +12,6 @@ contract ProjectFactory {
         uint256 minimumContribution,
         uint256 targetContribution,
         uint256 deadline,
-        string memory completionDescription,
         string memory nftNamePrefix,
         string memory nftSymbolPrefix
     ) public {
@@ -20,12 +19,11 @@ contract ProjectFactory {
             new Project(
                 deployedProjects.length + 1,
                 msg.sender,
+                recipient,
                 cid,
                 minimumContribution,
                 targetContribution,
                 deadline,
-                payable(recipient),
-                completionDescription,
                 nftNamePrefix,
                 nftSymbolPrefix
             )

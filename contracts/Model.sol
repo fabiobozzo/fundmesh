@@ -6,9 +6,11 @@ library Model {
         address payable recipient;
         string description;
         uint threshold;
+    }
+    struct Status {
         bool approved;
         uint approvedAt;
-        uint approvalsCount; // min 50% of `approvers` for a Request to pass
+        uint approvalsCount;
         mapping(address => uint) approvals;
         bool completed;
         uint completedAt;

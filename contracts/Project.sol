@@ -9,14 +9,17 @@ import "./ProjectNFT.sol";
 contract Project {
     uint private id;
     address public owner;
+    address payable public recipient;
     string public cid;
     uint public minimumContribution;
     uint public targetContribution;
     uint public deadline;
     uint public contributorsCount;
-
     mapping(address => uint) public contributors; // datetime of last contribution
+    Model.Status public status;
+
     Model.Milestone[] public milestones;
+    Model.Status[] public milestoneStatuses;
 
     ProjectNFT public nft;
 
@@ -28,12 +31,11 @@ contract Project {
     constructor(
         uint _id,
         address _owner,
+        address _recipient,
         string memory _cid,
         uint _minimumContribution,
         uint _targetContribution,
         uint _deadline,
-        address payable recipient,
-        string memory completionDescription,
         string memory nftNamePrefix,
         string memory nftSymbolPrefix
     ) {
@@ -43,29 +45,46 @@ contract Project {
         minimumContribution = _minimumContribution;
         targetContribution = _targetContribution;
         deadline = _deadline;
+        recipient = payable(_recipient);
 
         nft = new ProjectNFT(
             address(this),
             string(abi.encodePacked(nftNamePrefix, Strings.toString(id))),
             string(abi.encodePacked(nftSymbolPrefix, Strings.toString(id)))
         );
-
-        _createMilestone(completionDescription, _targetContribution, recipient);
     }
 
     function getSummary()
         public
         view
-        returns (uint, address, string memory, uint, uint, uint, uint)
+        returns (
+            uint,
+            address,
+            string memory,
+            uint,
+            uint,
+            uint,
+            uint,
+            bool,
+            uint,
+            uint,
+            bool,
+            uint
+        )
     {
         return (
             address(this).balance,
-            owner,
+            recipient,
             cid,
             minimumContribution,
             targetContribution,
             deadline,
-            contributorsCount
+            contributorsCount,
+            status.approved,
+            status.approvedAt,
+            status.approvalsCount,
+            status.completed,
+            status.completedAt
         );
     }
 
@@ -90,17 +109,6 @@ contract Project {
         return milestones.length;
     }
 
-    function createMilestone(
-        string memory description,
-        uint threshold,
-        address _recipient
-    ) public restricted {
-        // The completion milestone cannot be overwritten or duplicated
-        require(threshold < targetContribution);
-
-        _createMilestone(description, threshold, _recipient);
-    }
-
     function createMilestones(
         string[] memory descriptions,
         uint[] memory thresholds,
@@ -117,23 +125,26 @@ contract Project {
         }
     }
 
-    function _createMilestone(
-        string memory description,
-        uint threshold,
-        address recipient
-    ) private {
-        for (uint i = 0; i < milestones.length; i++) {
-            // A new milestone cannot have a lower threshold than existing ones
-            require(milestones[i].threshold >= threshold);
+    function createMilestone(
+        string memory _description,
+        uint _threshold,
+        address _recipient
+    ) public restricted {
+        require(bytes(_description).length > 0);
+        require(_threshold > 0);
+        require(_recipient != address(0));
+
+        // `milestones` are in ascending order by `threshold`
+        // A new milestone cannot have a lower threshold than existing ones
+        if (milestones.length > 0) {
+            require(_threshold > milestones[milestones.length - 1].threshold);
         }
 
         Model.Milestone storage newMilestone = milestones.push();
-
-        newMilestone.description = description;
-        newMilestone.threshold = threshold;
-        newMilestone.recipient = payable(recipient);
-        newMilestone.approved = false;
-        newMilestone.approvalsCount = 0;
+        newMilestone.description = _description;
+        newMilestone.threshold = _threshold;
+        newMilestone.recipient = payable(_recipient);
+        milestoneStatuses.push();
     }
 
     function approveMilestone(uint index) public payable {
@@ -142,6 +153,7 @@ contract Project {
         }
 
         Model.Milestone storage milestone = milestones[index];
+        Model.Status storage mStatus = milestoneStatuses[index];
 
         // The milestone must be reached in order to approve it
         require(address(this).balance >= milestone.threshold);
@@ -150,20 +162,22 @@ contract Project {
         require(contributors[msg.sender] > 0);
 
         // The approver cannot approve a milestone more than once
-        require(milestone.approvals[msg.sender] == 0);
+        require(mStatus.approvals[msg.sender] == 0);
 
-        milestone.approvals[msg.sender] = block.timestamp;
-        milestone.approvalsCount++;
+        mStatus.approvals[msg.sender] = block.timestamp;
+        mStatus.approvalsCount++;
 
-        if (milestone.approvalsCount > (contributorsCount / 2)) {
-            milestone.approved = true;
-            milestone.approvedAt = block.timestamp;
+        if (mStatus.approvalsCount > (contributorsCount / 2)) {
+            mStatus.approved = true;
+            mStatus.approvedAt = block.timestamp;
         }
     }
 
     function rewardMilestone(uint index, string memory tokenURI) public {
         Model.Milestone storage milestone = milestones[index];
-        uint approval = milestone.approvals[msg.sender];
+        Model.Status storage mStatus = milestoneStatuses[index];
+
+        uint approval = mStatus.approvals[msg.sender];
 
         if (milestone.threshold != targetContribution) {
             // Only milestone approvers can be rewarded for it
@@ -172,8 +186,8 @@ contract Project {
         }
 
         // Approvers can be rewarded only once for the same milestone
-        require(!milestone.rewards[msg.sender]);
-        milestone.rewards[msg.sender] = true;
+        require(!mStatus.rewards[msg.sender]);
+        mStatus.rewards[msg.sender] = true;
 
         nft.safeMint(msg.sender, tokenURI);
     }
@@ -183,6 +197,7 @@ contract Project {
         require(index < milestones.length);
 
         Model.Milestone storage milestone = milestones[index];
+        Model.Status storage mStatus = milestoneStatuses[index];
 
         // The amount available to withdraw at each approved milestone is equal to
         // `targetContribution` minus all the previous completed milestone thresholds
@@ -190,16 +205,16 @@ contract Project {
         for (uint i = 0; i <= index; i++) {
             if (i < index) {
                 // Previous milestones must be completed first
-                require(milestones[i].completed);
+                require(milestoneStatuses[i].completed);
                 withdrawAmount = withdrawAmount - milestones[i].threshold;
             } else {
                 // The milestone must be approved first in order to withdraw its value
-                require(milestones[i].approved);
+                require(milestoneStatuses[i].approved);
             }
         }
 
         milestone.recipient.transfer(withdrawAmount);
-        milestone.completed = true;
-        milestone.completedAt = block.timestamp;
+        mStatus.completed = true;
+        mStatus.completedAt = block.timestamp;
     }
 }
