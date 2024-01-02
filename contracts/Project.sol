@@ -105,6 +105,51 @@ contract Project {
         contributors[msg.sender] = block.timestamp;
     }
 
+    function approve() public {
+        // The `targetContribution` must be reached in order to approve the project
+        require(address(this).balance >= targetContribution);
+
+        // The approver must be a contributor to this project
+        require(contributors[msg.sender] > 0);
+
+        // The approver cannot approve the project more than once
+        require(status.approvals[msg.sender] == 0);
+
+        status.approvals[msg.sender] = block.timestamp;
+        status.approvalsCount++;
+
+        if (status.approvalsCount > (contributorsCount / 2)) {
+            status.approved = true;
+            status.approvedAt = block.timestamp;
+        }
+    }
+
+    function reward(string memory tokenURI) public {
+        // Only project approvers can be rewarded for its completion
+        uint approval = status.approvals[msg.sender];
+        require(approval > 0);
+
+        // Approvers can be rewarded only once for the project completion
+        require(!status.rewards[msg.sender]);
+
+        status.rewards[msg.sender] = true;
+        nft.safeMint(msg.sender, tokenURI);
+    }
+
+    function withdraw() public restricted {
+        // The project must be approved first and all its milestones 
+        // must be completed in order to withdraw its final value
+        require(status.approved);
+        for (uint i = 0; i < milestoneStatuses.length; i++) {
+            require(milestoneStatuses[i].completed);
+        }
+
+
+        recipient.transfer(address(this).balance);
+        status.completed = true;
+        status.completedAt = block.timestamp;
+    }
+
     function getMilestonesCount() public view returns (uint) {
         return milestones.length;
     }
@@ -132,6 +177,7 @@ contract Project {
     ) public restricted {
         require(bytes(_description).length > 0);
         require(_threshold > 0);
+        require(_threshold < targetContribution);
         require(_recipient != address(0));
 
         // `milestones` are in ascending order by `threshold`
@@ -147,11 +193,7 @@ contract Project {
         milestoneStatuses.push();
     }
 
-    function approveMilestone(uint index) public payable {
-        if (msg.value > 0) {
-            contribute();
-        }
-
+    function approveMilestone(uint index) public {
         Model.Milestone storage milestone = milestones[index];
         Model.Status storage mStatus = milestoneStatuses[index];
 
@@ -174,21 +216,16 @@ contract Project {
     }
 
     function rewardMilestone(uint index, string memory tokenURI) public {
-        Model.Milestone storage milestone = milestones[index];
         Model.Status storage mStatus = milestoneStatuses[index];
 
+        // Only milestone approvers can be rewarded for it
         uint approval = mStatus.approvals[msg.sender];
-
-        if (milestone.threshold != targetContribution) {
-            // Only milestone approvers can be rewarded for it
-            // Except for the last milestone aka project completion
-            require(approval > 0);
-        }
+        require(approval > 0);
 
         // Approvers can be rewarded only once for the same milestone
         require(!mStatus.rewards[msg.sender]);
-        mStatus.rewards[msg.sender] = true;
 
+        mStatus.rewards[msg.sender] = true;
         nft.safeMint(msg.sender, tokenURI);
     }
 
@@ -199,18 +236,16 @@ contract Project {
         Model.Milestone storage milestone = milestones[index];
         Model.Status storage mStatus = milestoneStatuses[index];
 
-        // The amount available to withdraw at each approved milestone is equal to
-        // `targetContribution` minus all the previous completed milestone thresholds
+        // The milestone must be approved first in order to withdraw its value
+        require(mStatus.approved);
+
+        // The amount available to withdraw at each approved milestone is equal to its
+        // threshold minus all the previous completed milestones' thresholds
         uint withdrawAmount = milestone.threshold;
-        for (uint i = 0; i <= index; i++) {
-            if (i < index) {
-                // Previous milestones must be completed first
-                require(milestoneStatuses[i].completed);
-                withdrawAmount = withdrawAmount - milestones[i].threshold;
-            } else {
-                // The milestone must be approved first in order to withdraw its value
-                require(milestoneStatuses[i].approved);
-            }
+        for (uint i = 0; i < index; i++) {
+            // Previous milestones must be completed first
+            require(milestoneStatuses[i].completed);
+            withdrawAmount = withdrawAmount - milestones[i].threshold;
         }
 
         milestone.recipient.transfer(withdrawAmount);
