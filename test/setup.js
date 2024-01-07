@@ -41,6 +41,8 @@ const setup = async (web3) => {
 
   projectNftAddress = await project.methods.nft().call();
   projectNft = await new web3.eth.Contract(compiledProjectNFT.abi, projectNftAddress);
+
+  return { accounts, projectFactory, project, projectNft };
 };
 
 module.exports = { setup, projectData };

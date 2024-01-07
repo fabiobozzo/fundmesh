@@ -4,12 +4,17 @@ const ganache = require('ganache');
 const { Web3 } = require('web3');
 const web3 = new Web3(ganache.provider({ quiet: true }));
 
+let accounts;
+let projectFactory;
+let project;
+let projectNft;
+
 beforeEach(async () => {
-  let accounts;
-  let projectFactory;
-  let project;
-  let projectNft;
-  await setup(web3);
+  const setupData = await setup(web3);
+  accounts = setupData.accounts;
+  projectFactory = setupData.projectFactory;
+  project = setupData.project;
+  projectNft = setupData.projectNft;
 });
 
 describe('Project', () => {

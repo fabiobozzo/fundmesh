@@ -94,7 +94,7 @@ contract Project {
 
     function contribute() public payable {
         // The transaction value must be higher than the minimum contribution for this project
-        require(msg.value > minimumContribution);
+        require(msg.value >= minimumContribution);
 
         // The transaction value must be lower than the target contribution for this project
         require(msg.value < targetContribution);
@@ -134,6 +134,7 @@ contract Project {
     }
 
     function reward(string memory tokenURI) public {
+        require(!status.completed)
         require(status.approved);
 
         // Only project approvers can be rewarded for its completion
@@ -233,6 +234,8 @@ contract Project {
     function rewardMilestone(uint index, string memory tokenURI) public {
         Model.Status storage mStatus = milestoneStatuses[index];
 
+        require(!mStatus.completed)
+
         // Only milestone approvers can be rewarded for it
         uint approval = mStatus.approvals[msg.sender];
         require(approval > 0);
@@ -245,9 +248,6 @@ contract Project {
     }
 
     function withdrawMilestone(uint index) public restricted {
-        // The milestone at `index` must exist
-        require(index < milestones.length);
-
         Model.Milestone storage milestone = milestones[index];
         Model.Status storage mStatus = milestoneStatuses[index];
 
