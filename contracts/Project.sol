@@ -13,6 +13,7 @@ contract Project {
     string public cid;
     uint public minimumContribution;
     uint public targetContribution;
+    
     uint public deadline;
     uint public contributorsCount;
     mapping(address => uint) public contributors; // datetime of last contribution
@@ -134,7 +135,7 @@ contract Project {
     }
 
     function reward(string memory tokenURI) public {
-        require(!status.completed)
+        require(!status.completed);
         require(status.approved);
 
         // Only project approvers can be rewarded for its completion
@@ -234,7 +235,7 @@ contract Project {
     function rewardMilestone(uint index, string memory tokenURI) public {
         Model.Status storage mStatus = milestoneStatuses[index];
 
-        require(!mStatus.completed)
+        require(!mStatus.completed);
 
         // Only milestone approvers can be rewarded for it
         uint approval = mStatus.approvals[msg.sender];

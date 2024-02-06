@@ -1,7 +1,6 @@
 const path = require('path');
 const solc = require('solc');
 const fs = require('fs-extra');
-const { log } = require('console');
 
 const listSolidityFiles = (dir, fileList = []) => {
   const files = fs.readdirSync(dir);

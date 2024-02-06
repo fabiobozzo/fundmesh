@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import Link from 'next/link';
 import { Icon, Menu, Modal, ModalContent, Header, Container } from 'semantic-ui-react';
-import { truncateEthAddress } from "@/web3/utils";
 import { useWeb3, useConnectionStatus } from "@/web3/context";
 import { web3Errors } from "@/web3/lib";
+import { truncateEthAddress } from "@/utils/web3";
 
 const LayoutHeader = () => {
   const { web3, connectToWallet } = useWeb3();
@@ -40,16 +40,17 @@ const LayoutHeader = () => {
   }, [web3]);
 
   return (
-    <div>
+    <div style={{ marginBottom: '20px' }}>
       <Menu style={{ marginTop: '10px' }}>
-        <Link href='/'>
-          <Menu.Item>
-            FundMesh
-          </Menu.Item>
-        </Link>
+        <Menu.Item>
+          <Link href='/'>FundMesh</Link>
+        </Menu.Item>
         <Menu.Menu position="right">
           <Menu.Item>
-            <Link href='/'>Projects</Link>
+            <Link href='/about'>How it Works</Link>
+          </Menu.Item>
+          <Menu.Item>
+            <Link href='/projects/me'>My Projects</Link>
           </Menu.Item>
           <Menu.Item icon>
             <Icon name="user" />
@@ -68,7 +69,7 @@ const LayoutHeader = () => {
         </Header>
         <ModalContent>
           <Container textAlign='center'>
-            <p>Please install <Link href={'https://metamask.io/'}>MetaMask</Link> and refresh the page.</p>
+            <p>Please install <Link href='https://metamask.io/'>MetaMask</Link> and refresh the page.</p>
           </Container>
         </ModalContent>
       </Modal>
