@@ -12,6 +12,7 @@ import { Factory } from '@/web3/contracts';
 
 import 'react-datepicker/dist/react-datepicker.css';
 import styles from './create.module.css';
+import { errors } from 'web3';
 
 const CreateProject = () => {
   const router = useRouter();
@@ -101,18 +102,34 @@ const CreateProject = () => {
     try {
       const accounts = await web3.eth.getAccounts();
       const factory = Factory(web3);
+
+      const recipient = values.recipient === '' ? accounts[0] : values.recipient;
+      const targetContribution = web3.utils.toWei(values.targetContribution, 'ether');
+
       await factory.methods
         .createProject(
-          values.recipient,
+          recipient,
           cid,
           values.minimumContribution,
-          values.targetContribution,
+          targetContribution,
           deadlineTimestamp,
           nftName,
           nftSymbol
         )
         .send({ from: accounts[0] });
+
+      const events = await factory.getPastEvents('ProjectCreated', {
+        fromBlock: 'latest',
+        toBlock: 'latest'
+      });
+      events.forEach(e => {
+        if (e.returnValues.creator === accounts[0]) {
+          router.push(`/projects/${e.returnValues.projectAddress}`);
+        }
+      });
+
       router.push(`/`);
+
     } catch (err) {
       setTError(err.message);
     } finally {
@@ -124,6 +141,11 @@ const CreateProject = () => {
     let error = false;
     let newErrors = {};
 
+    if (values.image && (values.image.size > 5000000 || values.image.type !== 'image/png')) {
+      newErrors.upload = 'Invalid image file. Please upload a PNG not bigger than 5M';
+      error = true;
+    }
+
     if (values.name.trim() === '' || values.name.length < 5) {
       newErrors.name = 'Name is required to be at least 5 characters';
       error = true;
@@ -132,9 +154,12 @@ const CreateProject = () => {
     if (typeof values.deadline.getTime === 'undefined') {
       newErrors.deadline = 'Deadline is required to be a valid calendar date/time';
       error = true;
+    } else if (values.deadline.getTime() < Date.now()) {
+      newErrors.deadline = 'Deadline must be in the future';
+      error = true;
     }
 
-    if (values.recipient.trim() === '' || !isAddress(values.recipient)) {
+    if (values.recipient.trim() !== '' && !isAddress(values.recipient)) {
       newErrors.recipient = 'Recipient must be a valid Ethereum address';
       error = true;
     }
@@ -164,7 +189,7 @@ const CreateProject = () => {
               <Form.Field>
                 <Popup
                   trigger={<Label basic pointing='below'><Icon name="question circle outline" />Image</Label>}
-                  content="A picture (PNG|SVG|JPG) that really represent your funding goal"
+                  content="A PNG image file (max. 5M) that really represent your funding goal."
                   basic
                 />
                 <Label as="label" basic htmlFor="upload" style={{ cursor: 'pointer' }}>
@@ -172,6 +197,7 @@ const CreateProject = () => {
                   Upload
                 </Label>
                 <input id="upload" hidden type="file" onChange={handleImageChange} />
+                <p className={styles.validationErrorMessage}>{vErrors.upload}</p>
                 <UIImage src={values.imageUrl || '/camera.png'} size="small" centered />
               </Form.Field>
             </Grid.Column>
@@ -179,14 +205,18 @@ const CreateProject = () => {
               <Form.Field>
                 <Popup
                   trigger={<Label basic pointing='below'><Icon name="question circle outline" />Name</Label>}
-                  content="A short and effective name of the project to raise funds for"
+                  content="A short but effective name of the project to raise funds for."
                   basic
                 />
                 <Input name="name" value={values.name} onChange={handleChange} />
                 <p className={styles.validationErrorMessage}>{vErrors.name}</p>
               </Form.Field>
               <Form.Field>
-                <label>Description</label>
+                <Popup
+                  trigger={<Label basic pointing='below'><Icon name="question circle outline" />Description</Label>}
+                  content="Pitch your project here. Explain in detail what's its goal, and what the raised funds will be used for."
+                  basic
+                />
                 <TextArea name="description" value={values.description} onChange={handleChange} rows={5} />
               </Form.Field>
             </Grid.Column>
@@ -194,25 +224,40 @@ const CreateProject = () => {
           <Grid.Row columns={2}>
             <Grid.Column>
               <Form.Field>
-                <label>Recipient Address</label>
+                <Popup
+                  trigger={<Label basic pointing='below'><Icon name="question circle outline" />Recipient Address</Label>}
+                  content="In case the recipient of the raised funds is different than you -i.e. the project creator- specify their address here."
+                  basic
+                />
                 <Input name="recipient" value={values.recipient} onChange={handleChange} />
                 <p className={styles.validationErrorMessage}>{vErrors.recipient}</p>
               </Form.Field>
               <Form.Field>
-                <label>Minimum Contribution</label>
+                <Popup
+                  trigger={<Label basic pointing='below'><Icon name="question circle outline" />Minimum Contribution</Label>}
+                  content="If specified, contributor could not transfer less than this amount (in WEI) to the project."
+                  basic
+                />
                 <Input name="minimumContribution" value={values.minimumContribution} onChange={handleChange} label="Wei" labelPosition='right' />
                 <p className={styles.validationErrorMessage}>{vErrors.minimumContribution}</p>
               </Form.Field>
             </Grid.Column>
             <Grid.Column>
               <Form.Field>
-                <label>Target Contribution</label>
+                <Popup
+                  trigger={<Label basic pointing='below'><Icon name="question circle outline" />Target Contribution</Label>}
+                  content="The amount (in ETH) to reach to complete the project and transfer the raised funds to the recipient."
+                  basic
+                />
                 <Input name="targetContribution" value={values.targetContribution} onChange={handleChange} label="Eth" labelPosition='right' />
                 <p className={styles.validationErrorMessage}>{vErrors.targetContribution}</p>
               </Form.Field>
               <Form.Field>
-                <label>Deadline</label>
-                {/* <Input name="deadline" value={values.deadline} onChange={handleChange} /> */}
+                <Popup
+                  trigger={<Label basic pointing='below'><Icon name="question circle outline" />Deadline</Label>}
+                  content="The date/time until which the project is open to contributions."
+                  basic
+                />
                 <DatePicker
                   label={{ icon: 'calendar' }}
                   labelPosition='right'
@@ -231,13 +276,21 @@ const CreateProject = () => {
           <Grid.Row columns={2}>
             <Grid.Column>
               <Form.Field>
-                <label>NFT Name Prefix</label>
+                <Popup
+                  trigger={<Label basic pointing='below'><Icon name="question circle outline" />NFT Name Prefix</Label>}
+                  content="The short text that represents the commemorative NFT given to project contributors."
+                  basic
+                />
                 <Input name="nftName" value={values.nftName} onChange={handleChange} />
               </Form.Field>
             </Grid.Column>
             <Grid.Column>
               <Form.Field>
-                <label>NFT Symbol Prefix</label>
+                <Popup
+                  trigger={<Label basic pointing='below'><Icon name="question circle outline" />NFT Symbol Prefix</Label>}
+                  content="The short string (max 8 chars) representing the commemorative NFT."
+                  basic
+                />
                 <Input name="nftSymbol" value={values.nftSymbol} onChange={handleChange} />
               </Form.Field>
             </Grid.Column>

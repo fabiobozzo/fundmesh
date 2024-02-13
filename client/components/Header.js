@@ -31,7 +31,7 @@ const LayoutHeader = () => {
 
       if (web3) {
         const accounts = await web3.eth.getAccounts();
-        console.log(accounts);
+        console.log('Accounts:',accounts);
         setAccounts(accounts);
       }
     };
@@ -47,7 +47,7 @@ const LayoutHeader = () => {
         </Menu.Item>
         <Menu.Menu position="right">
           <Menu.Item>
-            <Link href='/about'>How it Works</Link>
+            <Link href='/about'>How it works</Link>
           </Menu.Item>
           <Menu.Item>
             <Link href='/projects/me'>My Projects</Link>

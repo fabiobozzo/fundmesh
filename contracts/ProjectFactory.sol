@@ -6,6 +6,8 @@ import "./Project.sol";
 contract ProjectFactory {
     address[] public deployedProjects;
 
+    event ProjectCreated(address indexed creator, address projectAddress);
+
     function createProject(
         address recipient,
         string memory cid,
@@ -30,6 +32,8 @@ contract ProjectFactory {
         );
 
         deployedProjects.push(newProject);
+
+        emit ProjectCreated(msg.sender, newProject);
     }
 
     function getDeployedProjects() public view returns (address[] memory) {
