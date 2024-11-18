@@ -31,7 +31,6 @@ const LayoutHeader = () => {
 
       if (web3) {
         const accounts = await web3.eth.getAccounts();
-        console.log('Accounts:',accounts);
         setAccounts(accounts);
       }
     };

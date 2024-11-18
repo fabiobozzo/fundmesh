@@ -62,6 +62,7 @@ console.log('Building contracts...')
 
 for (let file of contractFiles) {
   const contractJson = solc.compile(input);
+  // console.log(contractJson);
   const output = JSON.parse(contractJson).contracts[file];
 
   fs.ensureDirSync(buildPath);

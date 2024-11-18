@@ -29,7 +29,7 @@ const Index = () => {
             const project = Project(web3, addr);
             const summary = await project.methods.getSummary().call();
             const cid = summary[2];
-            const response = await fetch(`https://ipfs.io/ipfs/${cid}/data.json`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_IPFS_GW}/${cid}/properties.json`);
 
             if (!response.ok) {
               continue
@@ -41,7 +41,8 @@ const Index = () => {
               address: addr,
               cid: cid,
               name: metadata.name,
-              description: metadata.description
+              description: metadata.description,
+              imageCid: metadata.imageCid
             });
           }
 
@@ -77,7 +78,7 @@ const Index = () => {
             <CardGroup stackable itemsPerRow={3}>
               {projects.map((project, index) => (
                 <Card key={index}>
-                  <Image src={`https://ipfs.io/ipfs/${project.cid}/image.png`} wrapped ui={false} />
+                  <Image src={`${process.env.NEXT_PUBLIC_IPFS_GW}/${project.imageCid}`} wrapped ui={false} />
                   <Card.Content>
                     <Card.Header>{project.name}</Card.Header>
                     <Card.Meta>{truncateEthAddress(project.address)}</Card.Meta>

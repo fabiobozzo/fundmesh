@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { Form, Input, Button, TextArea, Label, Icon, Image as UIImage, Grid, Divider, Container, Message, Popup } from 'semantic-ui-react';
 import DatePicker from 'react-datepicker';
 import Layout from '@/components/Layout';
-import { uploadFiles } from '@/ipfs/client';
+import { uploadFile, uploadFiles } from '@/ipfs/client';
 import { fileToIterable } from '@/utils/files';
 import { isPosInt, isPosNum } from '@/utils/numbers';
 import { isAddress } from 'web3-validator';
@@ -78,26 +78,7 @@ const CreateProject = () => {
     const nftName = values.nftName.trim() === '' ? values.name.substring(0, 10) : values.nftName;
     const nftSymbol = values.nftSymbol.trim() === '' ? values.name.substring(0, 4) : values.nftSymbol;
 
-    let files = [
-      {
-        path: '/data.json',
-        content: [new TextEncoder().encode(JSON.stringify({ name: values.name, description: values.description }))],
-      },
-    ];
-
-    if (values.image) {
-      files.push({
-        path: '/image.png',
-        content: fileToIterable(values.image),
-      });
-    }
-
-    let cid;
-    try {
-      cid = await uploadFiles(files);
-    } catch (err) {
-      console.log('ipfs upload error:', err);
-    }
+    const cid = await uploadAssetsToIpfs();
 
     try {
       const accounts = await web3.eth.getAccounts();
@@ -178,6 +159,41 @@ const CreateProject = () => {
 
     return !error
   }
+
+  const uploadAssetsToIpfs = async () => {
+    try {
+      let imageCid;
+      if (values.image) {
+        imageCid = await uploadFile(values.image);
+      }
+
+      const properties = { 
+        name: values.name, 
+        description: values.description
+      };
+      const nftMetadata = {
+        name: values.name,
+        description: values.description,
+        attributes: {
+          origin: 'Fundmesh'
+        }
+      };
+      if (imageCid) {
+        properties['imageCid'] = imageCid;
+        nftMetadata['image'] = `ipfs://${imageCid}`;
+      }
+
+      let files = [
+        { path: '/properties.json', content: [new TextEncoder().encode(JSON.stringify(properties))] },
+        { path: '/metadata.json', content: [new TextEncoder().encode(JSON.stringify(nftMetadata))] }
+      ];
+
+      return await uploadFiles(files);
+    } catch (err) {
+      console.log('IPFS upload error:', err);
+      return '';
+    } 
+  };
 
   return (
     <Layout>

@@ -257,28 +257,6 @@ describe('Milestones', () => {
     assert(status3.approvedAt == 0);
   });
 
-  it('allows users to receive a reward for an approved milestone', async () => {
-    await project.methods
-      .createMilestone('Milestone1', projectData.threshold1.toString(), projectData.recipient)
-      .send({ from: accounts[0], gas: '140000' });
-
-    const contribution1 = (Math.floor(projectData.threshold1 / 2) + 1);
-    await project.methods.contribute().send({ from: accounts[2], value: contribution1.toString() });
-    await project.methods.contribute().send({ from: accounts[3], value: contribution1.toString() });
-    await project.methods.approveMilestone(0).send({ from: accounts[2], gas: '140000' });
-    await project.methods.approveMilestone(0).send({ from: accounts[3], gas: '140000' });
-
-    const testTokenURI = 'ipfs://QmNpHFmk4GbJxDon2r2soYpwmrKaz1s6QfGMnBJtjA2ESd/1';
-    await project.methods.rewardMilestone(0, testTokenURI).send({ from: accounts[3], gas: '1400000' });
-
-    const tokenURI = await projectNft.methods.tokenURI(0).call();
-    assert.equal(testTokenURI, tokenURI);
-    let balance = await projectNft.methods.balanceOf(accounts[3]).call();
-    assert.equal(1, balance);
-    balance = await projectNft.methods.balanceOf(accounts[2]).call();
-    assert.equal(0, balance);
-  });
-
   it('rejects a withdrawal if the milestone is not yet approved', async () => {
     let success = true;
 

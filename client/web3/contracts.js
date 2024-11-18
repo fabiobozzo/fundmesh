@@ -1,5 +1,6 @@
 const compiledProject = require('../../build/Project.json');
 const compiledProjectFactory = require('../../build/ProjectFactory.json');
+const compiledProjectNFT = require('../../build/ProjectNFT.json');
 
 const Factory = (web3) => {
   return new web3.eth.Contract(
@@ -15,7 +16,15 @@ const Project = (web3, address) => {
   );
 };
 
+const ProjectNFT = (web3, address) => {
+  return new web3.eth.Contract(
+    compiledProjectNFT.abi,
+    address
+  );
+};
+
 export {
   Factory,
-  Project
+  Project,
+  ProjectNFT
 };

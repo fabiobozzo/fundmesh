@@ -43,26 +43,49 @@ describe('Project', () => {
     assert.equal(summary[11], 0); // completed timestamp
   });
 
+  it('accepts valid contributions', async () => {
+    const validAmount = projectData.minimumContribution + 1;
+    
+    await project.methods.contribute().send({
+      from: accounts[2],
+      value: validAmount.toString(),
+      gas: '200000'
+    });
+
+    const contribution = await project.methods.getContribution(accounts[2]).call();
+    assert(contribution > 0, 'Contribution should have been recorded');
+  });
+
   it('rejects contributions that are over the target or lower than the minimum', async () => {
     let success = true;
 
     try {
-      await project.methods.contribute().send({ from: accounts[2], value: (projectData.minimumContribution - 1).toString() });
+      const belowMin = projectData.minimumContribution - 1;
+      await project.methods.contribute().send({
+        from: accounts[2],
+        value: belowMin.toString(),
+        gas: '200000'
+      });
       success = false;
     } catch (err) {
-      assert(err);
-    } finally {
-      assert(success);
+      // error caught as expected for below minimum
     }
 
+    assert(success);
+
     try {
-      await project.methods.contribute().send({ from: accounts[2], value: (projectData.targetContribution + 1).toString() });
+      const aboveTarget = web3.utils.toBN(projectData.targetContribution).add(web3.utils.toBN('1'));
+      await project.methods.contribute().send({
+        from: accounts[2],
+        value: aboveTarget.toString(),
+        gas: '200000'
+      });
       success = false;
     } catch (err) {
-      assert(err);
-    } finally {
-      assert(success);
+      // error caught as expected for above target 
     }
+
+    assert(success);
   });
 
   it('allows users to send money and marks them as contributors', async () => {
@@ -188,20 +211,29 @@ describe('Project', () => {
   it('rejects a reward if the requestor was not a contributor to the project', async () => {
     let success = true;
 
-    await project.methods.contribute().send({ from: accounts[2], value: ((Math.floor(projectData.targetContribution / 3)) - 1).toString() });
-    await project.methods.contribute().send({ from: accounts[3], value: ((Math.floor(projectData.targetContribution / 3)) - 1).toString() });
-    await project.methods.contribute().send({ from: accounts[4], value: ((Math.floor(projectData.targetContribution / 3)) + 100).toString() });
+    await project.methods.contribute().send({ 
+      from: accounts[2], 
+      value: ((Math.floor(projectData.targetContribution / 3)) - 1).toString() 
+    });
+    await project.methods.contribute().send({ 
+      from: accounts[3], 
+      value: ((Math.floor(projectData.targetContribution / 3)) - 1).toString() 
+    });
+    await project.methods.contribute().send({ 
+      from: accounts[4], 
+      value: ((Math.floor(projectData.targetContribution / 3)) + 100).toString() 
+    });
     await project.methods.approve().send({ from: accounts[2], gas: '140000' });
     await project.methods.approve().send({ from: accounts[3], gas: '140000' });
 
     try {
-      await project.methods.reward('').send({ from: accounts[4], gas: '1400000' });
+      await project.methods.reward('').send({ from: accounts[5], gas: '1400000' });
       success = false;
     } catch (err) {
-      assert(err);
-    } finally {
-      assert(success);
+      // error caught as expected for non-contributor reward request
     }
+    
+    assert(success);
   });
 
   it('rejects double reward requests', async () => {

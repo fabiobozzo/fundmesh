@@ -21,6 +21,12 @@ const uploadFiles = async (files) => {
   return result[result.length - 1].cid.toString();;
 };
 
+const uploadFile = async (file) => {
+  const addedFile = await client.add(file);
+  return addedFile.cid.toString();
+};
+
 export {
-  uploadFiles
+  uploadFiles,
+  uploadFile
 };

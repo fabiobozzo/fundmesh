@@ -5,6 +5,7 @@ import "./Project.sol";
 
 contract ProjectFactory {
     address[] public deployedProjects;
+    mapping(address => address[]) public userProjects;
 
     event ProjectCreated(address indexed creator, address projectAddress);
 
@@ -32,11 +33,16 @@ contract ProjectFactory {
         );
 
         deployedProjects.push(newProject);
+        userProjects[msg.sender].push(newProject);
 
         emit ProjectCreated(msg.sender, newProject);
     }
 
     function getDeployedProjects() public view returns (address[] memory) {
         return deployedProjects;
+    }
+
+    function getUserProjects() public view returns (address[] memory) {
+        return userProjects[msg.sender];
     }
 }

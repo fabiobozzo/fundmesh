@@ -93,12 +93,25 @@ contract Project {
         return status.approvals[_address];
     }
 
+    function getReward(address _address) public view returns (uint256, string memory) {
+        if (status.rewards[_address]) {
+            uint256 tokenId = nft.tokenOfOwnerByIndex(_address, 0);
+            return (tokenId, nft.tokenURI(tokenId));
+        }
+
+        return (0, '');
+    }
+
+    function getContribution(address _address) public view returns (uint) {
+        return contributors[_address];
+    }
+
     function contribute() public payable {
         // The transaction value must be higher than the minimum contribution for this project
-        require(msg.value >= minimumContribution);
-
-        // The transaction value must be lower than the target contribution for this project
-        require(msg.value < targetContribution);
+        require(msg.value >= minimumContribution, "Contribution below minimum");
+    
+        // The total contribution must not exceed the target contribution for this project  
+        require(address(this).balance + msg.value <= targetContribution, "Contribution would exceed target");
 
         // After the project deadline is past it is no longer possible to contribute to it
         require(block.timestamp < deadline);
@@ -135,18 +148,17 @@ contract Project {
     }
 
     function reward(string memory tokenURI) public {
-        require(!status.completed);
-        require(status.approved);
+        require(!status.completed, "Project already completed");
+        require(status.approved, "Project not approved");
 
-        // Only project approvers can be rewarded for its completion
-        uint approval = status.approvals[msg.sender];
-        require(approval > 0);
+        // Only project contributors can be rewarded for its completion
+        require(contributors[msg.sender] > 0, "Not a contributor");
 
         // Approvers can be rewarded only once for the project completion
-        require(!status.rewards[msg.sender]);
+        require(!status.rewards[msg.sender], "Already rewarded");
 
-        status.rewards[msg.sender] = true;
         nft.safeMint(msg.sender, tokenURI);
+        status.rewards[msg.sender] = true;
     }
 
     function withdraw() public restricted {
@@ -230,22 +242,6 @@ contract Project {
             mStatus.approved = true;
             mStatus.approvedAt = block.timestamp;
         }
-    }
-
-    function rewardMilestone(uint index, string memory tokenURI) public {
-        Model.Status storage mStatus = milestoneStatuses[index];
-
-        require(!mStatus.completed);
-
-        // Only milestone approvers can be rewarded for it
-        uint approval = mStatus.approvals[msg.sender];
-        require(approval > 0);
-
-        // Approvers can be rewarded only once for the same milestone
-        require(!mStatus.rewards[msg.sender]);
-
-        mStatus.rewards[msg.sender] = true;
-        nft.safeMint(msg.sender, tokenURI);
     }
 
     function withdrawMilestone(uint index) public restricted {
