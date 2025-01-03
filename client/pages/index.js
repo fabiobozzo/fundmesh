@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/router';
 import Link from "next/link";
-import { Grid, Button, CardGroup, List, Divider, Segment, Dimmer, Loader, Image, Message, MessageHeader, Card } from 'semantic-ui-react';
+import { Grid, Button, CardGroup, List, Divider, Segment, Dimmer, Loader, Image, Message, MessageHeader, Card, Label } from 'semantic-ui-react';
 import Layout from '../components/Layout';
 import { useWeb3 } from "@/web3/context";
 import { Factory, Project } from "@/web3/contracts";
@@ -42,7 +42,8 @@ const Index = () => {
               cid: cid,
               name: metadata.name,
               description: metadata.description,
-              imageCid: metadata.imageCid
+              imageCid: metadata.imageCid,
+              completed: summary[10]
             });
           }
 
@@ -79,6 +80,11 @@ const Index = () => {
               {projects.map((project, index) => (
                 <Card key={index}>
                   <Image src={`${process.env.NEXT_PUBLIC_IPFS_GW}/${project.imageCid}`} wrapped ui={false} />
+                  {project.completed && (
+                    <Label as='a' color='grey' ribbon>
+                      Completed
+                    </Label>
+                  )}
                   <Card.Content>
                     <Card.Header>{project.name}</Card.Header>
                     <Card.Meta>{truncateEthAddress(project.address)}</Card.Meta>
