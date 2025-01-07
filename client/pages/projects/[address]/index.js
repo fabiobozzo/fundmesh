@@ -133,7 +133,20 @@ const CreateProject = () => {
       setTContributed(false);
       setTLoading(true);
       resetErrors();
-      const amount = values.unit.toLowerCase() == 'wei' ? values.amount : web3.utils.toWei(values.amount, 'ether');
+
+      const amount = values.unit.toLowerCase() === 'wei' ? values.amount : web3.utils.toWei(values.amount, 'ether');
+      
+      // Validate minimum contribution
+      if (Number(amount) < Number(summary[3])) {
+        throw new Error(`Minimum contribution is ${summary[3]} WEI`);
+      }
+
+      // Validate against target
+      const remaining = Number(summary[4]) - Number(summary[0]);
+      if (Number(amount) > remaining) {
+        throw new Error(`Amount exceeds remaining target. Maximum contribution: ${web3.utils.fromWei(remaining.toString(), 'ether')} ETH`);
+      }
+
       const accounts = await web3.eth.getAccounts();
       const project = Project(web3, address);
       await project.methods
@@ -472,6 +485,11 @@ const CreateProject = () => {
                       disabled={tLoading}
                       value={values.amount}
                     />
+                    {web3 && summary[0] !== undefined && (
+                      <Label basic pointing>
+                        Remaining target: {web3.utils.fromWei((Number(summary[4]) - Number(summary[0])).toString(), 'ether')} ETH
+                      </Label>
+                    )}
                   </FormField>
                   <Button primary icon labelPosition='left' loading={tLoading} disabled={tLoading}>
                     <Icon name='money' />

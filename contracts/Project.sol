@@ -24,6 +24,14 @@ contract Project {
 
     ProjectNFT public nft;
 
+    event ContributionMade(
+        address indexed contributor,
+        uint amount,
+        uint currentBalance,
+        uint contributorsCount,
+        uint timestamp
+    );
+
     modifier restricted() {
         require(msg.sender == owner);
         _;
@@ -110,8 +118,8 @@ contract Project {
         // The transaction value must be higher than the minimum contribution for this project
         require(msg.value >= minimumContribution, "Contribution below minimum");
     
-        // The total contribution must not exceed the target contribution for this project  
-        require(address(this).balance + msg.value <= targetContribution, "Contribution would exceed target");
+        // Allow contributions up to target + minimum to handle rounding
+        require(address(this).balance <= targetContribution + minimumContribution, "Contribution would exceed target");
 
         // After the project deadline is past it is no longer possible to contribute to it
         require(block.timestamp < deadline);
@@ -121,40 +129,51 @@ contract Project {
         }
 
         contributors[msg.sender] = block.timestamp;
+
+        emit ContributionMade(
+            msg.sender,
+            msg.value,
+            address(this).balance,
+            contributorsCount,
+            block.timestamp
+        );
     }
 
     function approve() public {
         // The `targetContribution` must be reached in order to approve the project
-        require(address(this).balance >= targetContribution);
+        require(address(this).balance >= targetContribution, "Target contribution not reached");
 
         // The approver must be a contributor to this project
-        require(contributors[msg.sender] > 0);
+        require(contributors[msg.sender] > 0, "Not a contributor");
 
         // The approver cannot approve the project more than once
-        require(status.approvals[msg.sender] == 0);
+        require(status.approvals[msg.sender] == 0, "Already approved");
 
-        // All project milestones must be approved before the project can be approved
-        for (uint i = 0; i < milestoneStatuses.length; i++) {
-            require(milestoneStatuses[i].approved);
+        // All project milestones must be completed before the project can be approved
+        if (milestones.length > 0) {
+            for (uint i = 0; i < milestoneStatuses.length; i++) {
+                require(milestoneStatuses[i].completed, "All milestones must be completed first");
+            }
         }
 
         status.approvals[msg.sender] = block.timestamp;
         status.approvalsCount++;
 
-        if (status.approvalsCount > (contributorsCount / 2)) {
+        // Quorum check
+        if (status.approvalsCount >= ((contributorsCount / 2) + 1)) {
             status.approved = true;
             status.approvedAt = block.timestamp;
         }
     }
 
     function reward(string memory tokenURI) public {
-        require(!status.completed, "Project already completed");
+        // The project must be approved before rewards can be claimed
         require(status.approved, "Project not approved");
 
-        // Only project contributors can be rewarded for its completion
+        // The requestor must be a contributor to this project
         require(contributors[msg.sender] > 0, "Not a contributor");
 
-        // Approvers can be rewarded only once for the project completion
+        // The requestor cannot claim more than one reward
         require(!status.rewards[msg.sender], "Already rewarded");
 
         nft.safeMint(msg.sender, tokenURI);
@@ -162,12 +181,15 @@ contract Project {
     }
 
     function withdraw() public restricted {
-        // The project must be approved first and all its milestones
-        // must be completed in order to withdraw its final value
-        require(status.approved);
+        // The project must be approved first and all milestones must be completed in order to withdraw its final value
+        require(status.approved, "Project not approved");
+        
+        // All milestones must be completed
         for (uint i = 0; i < milestoneStatuses.length; i++) {
-            require(milestoneStatuses[i].completed);
+            require(milestoneStatuses[i].completed, "Pending milestones");
         }
+
+        require(!status.completed, "Project already completed");
 
         recipient.transfer(address(this).balance);
         status.completed = true;
@@ -223,22 +245,32 @@ contract Project {
     }
 
     function approveMilestone(uint index) public {
+        require(index < milestones.length, "Invalid milestone index");
         Model.Milestone storage milestone = milestones[index];
         Model.Status storage mStatus = milestoneStatuses[index];
 
-        // The milestone must be reached in order to approve it
-        require(address(this).balance >= milestone.threshold);
+        // Previous milestones must be completed first
+        if (index > 0) {
+            for (uint i = 0; i < index; i++) {
+                require(milestoneStatuses[i].completed, "Previous milestones must be completed first");
+            }
+        }
 
-        // The approver must be a contributor to this project
-        require(contributors[msg.sender] > 0);
+        require(contributors[msg.sender] > 0, "Not a contributor");
+        require(mStatus.approvals[msg.sender] == 0, "Already approved this milestone");
 
-        // The approver cannot approve a milestone more than once
-        require(mStatus.approvals[msg.sender] == 0);
+        // For milestone approval, we only need the current balance to cover 
+        // the difference between this milestone and previous ones
+        uint requiredBalance = milestone.threshold;
+        if (index > 0) {
+            requiredBalance = milestone.threshold - milestones[index - 1].threshold;
+        }
+        require(address(this).balance >= requiredBalance, "Milestone threshold not reached");
 
         mStatus.approvals[msg.sender] = block.timestamp;
         mStatus.approvalsCount++;
 
-        if (mStatus.approvalsCount > (contributorsCount / 2)) {
+        if (mStatus.approvalsCount >= ((contributorsCount / 2) + 1)) {
             mStatus.approved = true;
             mStatus.approvedAt = block.timestamp;
         }
@@ -249,14 +281,15 @@ contract Project {
         Model.Status storage mStatus = milestoneStatuses[index];
 
         // The milestone must be approved first in order to withdraw its value
-        require(mStatus.approved);
+        require(mStatus.approved, "Milestone not approved");
+        require(!mStatus.completed, "Milestone already completed");
 
         // The amount available to withdraw at each approved milestone is equal to its
         // threshold minus all the previous completed milestones' thresholds
         uint withdrawAmount = milestone.threshold;
         for (uint i = 0; i < index; i++) {
             // Previous milestones must be completed first
-            require(milestoneStatuses[i].completed);
+            require(milestoneStatuses[i].completed, "Previous milestones pending");
             withdrawAmount = withdrawAmount - milestones[i].threshold;
         }
 

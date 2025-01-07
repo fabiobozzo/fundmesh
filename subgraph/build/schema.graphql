@@ -1,0 +1,18 @@
+type Project @entity {
+  id: ID!
+  projectAddress: Bytes!
+  owner: Bytes!
+  cid: String!
+  createdAt: BigInt!
+  name: String!
+  description: String!
+  imageCid: String!
+  minimumContribution: BigInt!
+  targetContribution: BigInt!
+  deadline: BigInt!
+  contributorsCount: BigInt!
+  currentBalance: BigInt!
+  progressRatio: BigDecimal!
+  trendingScore: BigDecimal!
+  completed: Boolean!
+}

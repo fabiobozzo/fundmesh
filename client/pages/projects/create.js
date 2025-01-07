@@ -87,7 +87,7 @@ const CreateProject = () => {
       const recipient = values.recipient === '' ? accounts[0] : values.recipient;
       const targetContribution = web3.utils.toWei(values.targetContribution, 'ether');
 
-      await factory.methods
+      const receipt = await factory.methods
         .createProject(
           recipient,
           cid,
@@ -99,17 +99,21 @@ const CreateProject = () => {
         )
         .send({ from: accounts[0] });
 
+      console.log('Transaction receipt:', receipt);
+      console.log('Events:', receipt.events);
+
       const events = await factory.getPastEvents('ProjectCreated', {
         fromBlock: 'latest',
         toBlock: 'latest'
       });
-      events.forEach(e => {
-        if (e.returnValues.creator === accounts[0]) {
-          router.push(`/projects/${e.returnValues.projectAddress}`);
-        }
-      });
+      
+      const event = events.find(e => e.returnValues.owner === accounts[0]);
+      if (event) {
+        router.push(`/projects/${event.returnValues.projectAddress}`);
+        return;
+      }
 
-      router.push(`/`);
+      router.push('/');
 
     } catch (err) {
       setTError(err.message);

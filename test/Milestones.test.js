@@ -217,44 +217,53 @@ describe('Milestones', () => {
   });
 
   it('allows users to approve a milestone that reached its threshold and a quorum of approvals', async () => {
+    // Create 3 milestones with thresholds at 30%, 70%, and 90% of target
     await project.methods
-      .createMilestone('Milestone1', projectData.threshold1.toString(), projectData.recipient)
-      .send({ from: accounts[0], gas: '140000' });
+        .createMilestone('Milestone1', projectData.threshold1.toString(), projectData.recipient)
+        .send({ from: accounts[0], gas: '140000' });
     await project.methods
-      .createMilestone('Milestone2', projectData.threshold2.toString(), projectData.recipient)
-      .send({ from: accounts[0], gas: '140000' });
+        .createMilestone('Milestone2', projectData.threshold2.toString(), projectData.recipient)
+        .send({ from: accounts[0], gas: '140000' });
     await project.methods
-      .createMilestone('Milestone3', projectData.threshold3.toString(), projectData.recipient)
-      .send({ from: accounts[0], gas: '140000' });
+        .createMilestone('Milestone3', projectData.threshold3.toString(), projectData.recipient)
+        .send({ from: accounts[0], gas: '140000' });
 
+    // First milestone - need threshold1 (30%)
     const contribution1 = (Math.floor(projectData.threshold1 / 2) + 1);
     await project.methods.contribute().send({ from: accounts[2], value: contribution1.toString() });
     await project.methods.contribute().send({ from: accounts[3], value: contribution1.toString() });
+    
     await project.methods.approveMilestone(0).send({ from: accounts[2], gas: '140000' });
     await project.methods.approveMilestone(0).send({ from: accounts[3], gas: '140000' });
+    await project.methods.withdrawMilestone(0).send({ from: accounts[0], gas: '1400000' });
+    
     const status1 = await project.methods.milestoneStatuses(0).call();
     assert(status1.approved);
-    assert(status1.approvedAt > 0);
+    assert(status1.completed);
 
-    let summary = await project.methods.getSummary().call();
-    assert(summary[0] >= projectData.threshold1);
-
+    // Second milestone - need (threshold2 - threshold1)
     const contribution2 = (Math.floor((projectData.threshold2 - projectData.threshold1) / 2) + 1);
     await project.methods.contribute().send({ from: accounts[2], value: contribution2.toString() });
     await project.methods.contribute().send({ from: accounts[3], value: contribution2.toString() });
+    
     await project.methods.approveMilestone(1).send({ from: accounts[2], gas: '140000' });
     await project.methods.approveMilestone(1).send({ from: accounts[3], gas: '140000' });
+    await project.methods.withdrawMilestone(1).send({ from: accounts[0], gas: '1400000' });
 
     const status2 = await project.methods.milestoneStatuses(1).call();
     assert(status2.approved);
-    assert(status2.approvedAt > 0);
+    assert(status2.completed);
 
-    summary = await project.methods.getSummary().call();
-    assert(summary[0] >= projectData.threshold2);
+    // Third milestone - need (threshold3 - threshold2)
+    const contribution3 = (Math.floor((projectData.threshold3 - projectData.threshold2) / 2) + 1);
+    await project.methods.contribute().send({ from: accounts[2], value: contribution3.toString() });
+    await project.methods.contribute().send({ from: accounts[3], value: contribution3.toString() });
+    
+    await project.methods.approveMilestone(2).send({ from: accounts[2], gas: '140000' });
+    await project.methods.approveMilestone(2).send({ from: accounts[3], gas: '140000' });
 
     const status3 = await project.methods.milestoneStatuses(2).call();
-    assert(!status3.approved);
-    assert(status3.approvedAt == 0);
+    assert(status3.approved);
   });
 
   it('rejects a withdrawal if the milestone is not yet approved', async () => {

@@ -7,7 +7,16 @@ contract ProjectFactory {
     address[] public deployedProjects;
     mapping(address => address[]) public userProjects;
 
-    event ProjectCreated(address indexed creator, address projectAddress);
+    event ProjectCreated(
+        uint indexed id,
+        address indexed projectAddress,
+        address indexed owner,
+        string cid,
+        uint minimumContribution,
+        uint targetContribution,
+        uint deadline,
+        uint timestamp
+    );
 
     function createProject(
         address recipient,
@@ -35,7 +44,16 @@ contract ProjectFactory {
         deployedProjects.push(newProject);
         userProjects[msg.sender].push(newProject);
 
-        emit ProjectCreated(msg.sender, newProject);
+        emit ProjectCreated(
+            deployedProjects.length,
+            newProject,
+            msg.sender,
+            cid,
+            minimumContribution,
+            targetContribution,
+            deadline,
+            block.timestamp
+        );
     }
 
     function getDeployedProjects() public view returns (address[] memory) {
