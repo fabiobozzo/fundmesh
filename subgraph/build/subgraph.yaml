@@ -8,7 +8,7 @@ dataSources:
     name: ProjectFactory
     network: sepolia
     source:
-      address: "0x0AC3CF01fC12EE4f02Fe5C8040c81bF06b862AC5"
+      address: "0xe7EF86E7bBd9911C34255eaFD4Ab68752dd5c178"
       abi: ProjectFactory
       startBlock: 7416008
     mapping:
@@ -40,9 +40,25 @@ templates:
       file: templates/Project/Project.wasm
       entities:
         - Project
+        - Activity
+        - Milestone
       abis:
         - name: Project
           file: Project/Project.json
       eventHandlers:
         - event: ContributionMade(indexed address,uint256,uint256,uint256,uint256)
           handler: handleContributionMade
+        - event: ApprovalSubmitted(indexed address,uint256,uint256)
+          handler: handleApprovalSubmitted
+        - event: ProjectApproved(uint256)
+          handler: handleProjectApproved
+        - event: ProjectCompleted(indexed address,uint256,uint256)
+          handler: handleProjectCompleted
+        - event: MilestoneApprovalSubmitted(indexed uint256,indexed address,uint256,uint256)
+          handler: handleMilestoneApprovalSubmitted
+        - event: MilestoneApproved(indexed uint256,uint256)
+          handler: handleMilestoneApproved
+        - event: MilestoneCompleted(indexed uint256,indexed address,uint256,uint256)
+          handler: handleMilestoneCompleted
+        - event: RewardClaimed(indexed address,uint256,string,uint256)
+          handler: handleRewardClaimed

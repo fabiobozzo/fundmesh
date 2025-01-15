@@ -24,14 +24,6 @@ contract Project {
 
     ProjectNFT public nft;
 
-    event ContributionMade(
-        address indexed contributor,
-        uint amount,
-        uint currentBalance,
-        uint contributorsCount,
-        uint timestamp
-    );
-
     modifier restricted() {
         require(msg.sender == owner);
         _;
@@ -159,10 +151,17 @@ contract Project {
         status.approvals[msg.sender] = block.timestamp;
         status.approvalsCount++;
 
+        emit ApprovalSubmitted(
+            msg.sender,
+            status.approvalsCount,
+            block.timestamp
+        );
+
         // Quorum check
         if (status.approvalsCount >= ((contributorsCount / 2) + 1)) {
             status.approved = true;
             status.approvedAt = block.timestamp;
+            emit ProjectApproved(block.timestamp);
         }
     }
 
@@ -178,6 +177,14 @@ contract Project {
 
         nft.safeMint(msg.sender, tokenURI);
         status.rewards[msg.sender] = true;
+        
+        uint256 tokenId = nft.tokenOfOwnerByIndex(msg.sender, 0);
+        emit RewardClaimed(
+            msg.sender,
+            tokenId,
+            tokenURI,
+            block.timestamp
+        );
     }
 
     function withdraw() public restricted {
@@ -194,6 +201,12 @@ contract Project {
         recipient.transfer(address(this).balance);
         status.completed = true;
         status.completedAt = block.timestamp;
+        
+        emit ProjectCompleted(
+            recipient,
+            address(this).balance,
+            block.timestamp
+        );
     }
 
     /*
@@ -270,9 +283,17 @@ contract Project {
         mStatus.approvals[msg.sender] = block.timestamp;
         mStatus.approvalsCount++;
 
+        emit MilestoneApprovalSubmitted(
+            index,
+            msg.sender,
+            mStatus.approvalsCount,
+            block.timestamp
+        );
+
         if (mStatus.approvalsCount >= ((contributorsCount / 2) + 1)) {
             mStatus.approved = true;
             mStatus.approvedAt = block.timestamp;
+            emit MilestoneApproved(index, block.timestamp);
         }
     }
 
@@ -296,5 +317,66 @@ contract Project {
         milestone.recipient.transfer(withdrawAmount);
         mStatus.completed = true;
         mStatus.completedAt = block.timestamp;
+
+        emit MilestoneCompleted(
+            index,
+            milestone.recipient,
+            withdrawAmount,
+            block.timestamp
+        );
     }
+
+    /*
+     * =======
+     * Events
+     * =======
+     */
+
+    event ContributionMade(
+        address indexed contributor,
+        uint amount,
+        uint currentBalance,
+        uint contributorsCount,
+        uint timestamp
+    );
+
+    event ApprovalSubmitted(
+        address indexed approver,
+        uint approvalsCount,
+        uint timestamp
+    );
+
+    event ProjectApproved(uint timestamp);
+
+    event ProjectCompleted(
+        address indexed recipient,
+        uint amount,
+        uint timestamp
+    );
+
+    event MilestoneApprovalSubmitted(
+        uint indexed milestoneIndex,
+        address indexed approver,
+        uint approvalsCount,
+        uint timestamp
+    );
+
+    event MilestoneApproved(
+        uint indexed milestoneIndex,
+        uint timestamp
+    );
+
+    event MilestoneCompleted(
+        uint indexed milestoneIndex,
+        address indexed recipient,
+        uint amount,
+        uint timestamp
+    );
+
+    event RewardClaimed(
+        address indexed contributor,
+        uint256 tokenId,
+        string tokenURI,
+        uint timestamp
+    );
 }

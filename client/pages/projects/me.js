@@ -1,13 +1,12 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import Link from 'next/link';
-import { useWeb3 } from '@/web3/context';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { Grid, Button, CardGroup, Segment, Dimmer, Loader, Image, Message, MessageHeader, Card, Progress, Icon } from 'semantic-ui-react';
 import Layout from '@/components/Layout';
-import { Grid, Button, CardGroup, Segment, Dimmer, Loader, Image, Message, MessageHeader, Card, Label } from 'semantic-ui-react';
-import { truncateEthAddress } from "@/utils/web3";
+import { truncateEthAddress, formatDeadline } from "@/utils/web3";
+import { formatETH } from '@/utils/currency';
+import { useWeb3 } from '@/web3/context';
 
 const MyProjects = () => {
-  const router = useRouter();
   const { web3 } = useWeb3();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,8 +26,16 @@ const MyProjects = () => {
               id
               projectAddress
               owner
+              name
+              description
+              imageCid
               cid
-              createdAt
+              contributorsCount
+              currentBalance
+              targetContribution
+              progressRatio
+              deadline
+              completed
             }
           }
         `;
@@ -45,19 +52,28 @@ const MyProjects = () => {
         const { data } = await response.json();
         
         // Fetch IPFS metadata for each project
+        const fetchIpfsMetadataIfNeeded = async (project) => {
+          if (project.cid && (!project.imageCid || project.name === 'Untitled Project')) {
+            try {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_IPFS_GW}/${project.cid}/properties.json`);
+              if (response.ok) {
+                const metadata = await response.json();
+                return {
+                  ...project,
+                  name: project.name === 'Untitled Project' ? metadata.name : project.name,
+                  description: project.description || metadata.description,
+                  imageCid: project.imageCid || metadata.imageCid
+                };
+              }
+            } catch (err) {
+              console.error('Failed to fetch IPFS metadata:', err);
+            }
+          }
+          return project;
+        };
+
         const projectsWithMetadata = await Promise.all(
-          data.projects.map(async (project) => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_IPFS_GW}/${project.cid}/properties.json`);
-            if (!response.ok) return project;
-            
-            const metadata = await response.json();
-            return {
-              ...project,
-              name: metadata.name,
-              description: metadata.description,
-              imageCid: metadata.imageCid
-            };
-          })
+          data.projects.map(fetchIpfsMetadataIfNeeded)
         );
 
         setProjects(projectsWithMetadata);
@@ -72,11 +88,83 @@ const MyProjects = () => {
     fetchProjects();
   }, [web3]);
 
+  const renderProjectCard = (project) => {
+    const progress = Math.round(Number(project.progressRatio) * 100);
+    
+    return (
+      <Card key={project.id} fluid style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <Image 
+          src={`${process.env.NEXT_PUBLIC_IPFS_GW}/${project.imageCid}`} 
+          wrapped 
+          ui={false}
+          style={{ 
+            height: '265px', 
+            objectFit: 'cover',
+            backgroundColor: '#f9f9f9'
+          }}
+        />
+        <Card.Content style={{ padding: '1.5em' }}>
+          <Card.Header>{project.name}</Card.Header>
+          <Card.Meta>by {truncateEthAddress(project.owner)}</Card.Meta>
+          
+          <Progress 
+            percent={progress} 
+            style={{ 
+              margin: '1em 0',
+              background: '#eee',
+              height: '8px'
+            }}
+            color='blue'
+            size='tiny'
+          />
+          
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            gap: '0.5em',
+            fontSize: '1.1em',
+            marginBottom: '1em'
+          }}>
+            <div>Raised: {formatETH(project.currentBalance)}</div>
+            <div>Goal: {formatETH(project.targetContribution)}</div>
+          </div>
+
+          <div style={{ 
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5em',
+            color: '#666',
+            marginBottom: '0.5em'
+          }}>
+            <Icon name='user' />
+            <span>{project.contributorsCount} contributors</span>
+          </div>
+          <div style={{ color: '#666' }}>{formatDeadline(project.deadline)}</div>
+        </Card.Content>
+
+        <Link href={`/projects/${project.projectAddress}`} style={{ width: '100%' }}>
+          <Button 
+            fluid
+            basic
+            color='blue'
+            style={{
+              borderRadius: '0 0 4px 4px',
+              borderTop: '1px solid #eee',
+              height: '50px'
+            }}
+          >
+            View Project <Icon name='arrow right' />
+          </Button>
+        </Link>
+      </Card>
+    );
+  };
+
   return (
     <Layout>
       <Grid>
         <Grid.Row>
-          <Grid.Column>
+          <Grid.Column width={16}>
             <h3>My Projects</h3>
             <Message hidden={error === ''} negative>
               <MessageHeader>An error has occurred while retrieving your projects.</MessageHeader>
@@ -96,20 +184,8 @@ const MyProjects = () => {
                 </p>
               </Message>
             ) : (
-              <CardGroup stackable itemsPerRow={3}>
-                {projects.map((project) => (
-                  <Card key={project.id}>
-                    <Image src={`${process.env.NEXT_PUBLIC_IPFS_GW}/${project.imageCid}`} wrapped ui={false} />
-                    <Card.Content>
-                      <Card.Header>{project.name || `Project #${project.id}`}</Card.Header>
-                      <Card.Meta>{truncateEthAddress(project.projectAddress)}</Card.Meta>
-                      <Card.Description>{project.description}</Card.Description>
-                    </Card.Content>
-                    <Card.Content extra>
-                      <Link href={`/projects/${project.projectAddress}`}>View Project →</Link>
-                    </Card.Content>
-                  </Card>
-                ))}
+              <CardGroup stackable itemsPerRow={4}>
+                {projects.map(renderProjectCard)}
               </CardGroup>
             )}
           </Grid.Column>

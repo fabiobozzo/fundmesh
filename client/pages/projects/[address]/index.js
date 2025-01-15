@@ -256,7 +256,13 @@ const CreateProject = () => {
     }
 
     if (approval > 0) {
-      return 'You already approved this project.';
+      return (
+        <>
+          You already approved this project.
+          <br />
+          Please wait for the majority of contributors to approve it.
+        </>
+      );
     }
 
     return (
@@ -267,13 +273,6 @@ const CreateProject = () => {
   };
 
   const renderRewardButton = () => {
-    console.log('Render values:', {
-      rewardTokenURI,
-      nftContractAddress,
-      nftTokenId,
-      nftTx
-    });
-
     if (web3 && summary[0] !== undefined && summary[0] >= summary[4] && summary[7] && contribution > 0) {
       if (rewardTokenURI) {
         return (
@@ -411,10 +410,6 @@ const CreateProject = () => {
                 <TableCell>{metadata.description}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Address</TableCell>
-                <TableCell>{address}</TableCell>
-              </TableRow>
-              <TableRow>
                 <TableCell>Recipient</TableCell>
                 <TableCell>{summary[1]}</TableCell>
               </TableRow>
@@ -423,7 +418,10 @@ const CreateProject = () => {
                 <TableCell>
                   {web3 && summary[0] !== undefined
                     ? <>
-                      {web3.utils.fromWei(summary[0], 'ether').replace(/\.$/, "")} / {web3.utils.fromWei(summary[4], 'ether')} ETH
+                      {summary[10] 
+                        ? <p>{web3.utils.fromWei(summary[4], 'ether')} ETH raised<Icon loading name='checkmark' /></p>
+                        : `${web3.utils.fromWei(summary[0], 'ether').replace(/\.$/, "")} / ${web3.utils.fromWei(summary[4], 'ether')} ETH`
+                      }
                       {(Number(summary[0]) >= Number(summary[4])) && <Icon name='check' />}
                     </>
                     : '...'
@@ -476,25 +474,34 @@ const CreateProject = () => {
               {!summary[10] && (
                 <Form onSubmit={handleContribute} error={tContributeError !== ''}>
                   <FormField>
-                    <Input
-                      name='amount'
-                      label={<Dropdown name='unit' defaultValue={values.unit} onChange={onChangeContribution} options={[{ key: 'wei', value: 'wei', text: 'WEI' }, { key: 'eth', value: 'eth', text: 'ETH' }]} />}
-                      onChange={onChangeContribution}
-                      labelPosition='right'
-                      placeholder='0'
-                      disabled={tLoading}
-                      value={values.amount}
-                    />
-                    {web3 && summary[0] !== undefined && (
-                      <Label basic pointing>
-                        Remaining target: {web3.utils.fromWei((Number(summary[4]) - Number(summary[0])).toString(), 'ether')} ETH
-                      </Label>
+                    {web3 && summary[0] !== undefined && Number(summary[0]) < Number(summary[4]) ? (
+                      <>
+                        <Input
+                          name='amount'
+                          label={<Dropdown name='unit' defaultValue={values.unit} onChange={onChangeContribution} options={[{ key: 'wei', value: 'wei', text: 'WEI' }, { key: 'eth', value: 'eth', text: 'ETH' }]} />}
+                          onChange={onChangeContribution}
+                          labelPosition='right'
+                          placeholder='0'
+                          disabled={tLoading}
+                          value={values.amount}
+                        />
+                        <Label basic pointing>
+                          Remaining target: {web3.utils.fromWei((Number(summary[4]) - Number(summary[0])).toString(), 'ether')} ETH
+                        </Label>
+                      </>
+                    ) : (
+                      <Message info>
+                        <Message.Header>Target Reached! 🎉</Message.Header>
+                        <p>This project has reached its funding goal. No more contributions are needed.</p>
+                      </Message>
                     )}
                   </FormField>
-                  <Button primary icon labelPosition='left' loading={tLoading} disabled={tLoading}>
-                    <Icon name='money' />
-                    Contribute
-                  </Button>
+                  {web3 && summary[0] !== undefined && Number(summary[0]) < Number(summary[4]) && (
+                    <Button primary icon labelPosition='left' loading={tLoading} disabled={tLoading}>
+                      <Icon name='money' />
+                      Contribute
+                    </Button>
+                  )}
                   <Message error content={tContributeError} />
                   <Message info hidden={!tContributed}>
                     <MessageHeader>Thank you!</MessageHeader>

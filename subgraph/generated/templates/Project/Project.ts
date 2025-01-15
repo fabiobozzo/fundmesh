@@ -10,6 +10,32 @@ import {
   BigInt,
 } from "@graphprotocol/graph-ts";
 
+export class ApprovalSubmitted extends ethereum.Event {
+  get params(): ApprovalSubmitted__Params {
+    return new ApprovalSubmitted__Params(this);
+  }
+}
+
+export class ApprovalSubmitted__Params {
+  _event: ApprovalSubmitted;
+
+  constructor(event: ApprovalSubmitted) {
+    this._event = event;
+  }
+
+  get approver(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get approvalsCount(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+
+  get timestamp(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
+  }
+}
+
 export class ContributionMade extends ethereum.Event {
   get params(): ContributionMade__Params {
     return new ContributionMade__Params(this);
@@ -41,6 +67,162 @@ export class ContributionMade__Params {
 
   get timestamp(): BigInt {
     return this._event.parameters[4].value.toBigInt();
+  }
+}
+
+export class MilestoneApprovalSubmitted extends ethereum.Event {
+  get params(): MilestoneApprovalSubmitted__Params {
+    return new MilestoneApprovalSubmitted__Params(this);
+  }
+}
+
+export class MilestoneApprovalSubmitted__Params {
+  _event: MilestoneApprovalSubmitted;
+
+  constructor(event: MilestoneApprovalSubmitted) {
+    this._event = event;
+  }
+
+  get milestoneIndex(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get approver(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get approvalsCount(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
+  }
+
+  get timestamp(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
+  }
+}
+
+export class MilestoneApproved extends ethereum.Event {
+  get params(): MilestoneApproved__Params {
+    return new MilestoneApproved__Params(this);
+  }
+}
+
+export class MilestoneApproved__Params {
+  _event: MilestoneApproved;
+
+  constructor(event: MilestoneApproved) {
+    this._event = event;
+  }
+
+  get milestoneIndex(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get timestamp(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+}
+
+export class MilestoneCompleted extends ethereum.Event {
+  get params(): MilestoneCompleted__Params {
+    return new MilestoneCompleted__Params(this);
+  }
+}
+
+export class MilestoneCompleted__Params {
+  _event: MilestoneCompleted;
+
+  constructor(event: MilestoneCompleted) {
+    this._event = event;
+  }
+
+  get milestoneIndex(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get recipient(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get amount(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
+  }
+
+  get timestamp(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
+  }
+}
+
+export class ProjectApproved extends ethereum.Event {
+  get params(): ProjectApproved__Params {
+    return new ProjectApproved__Params(this);
+  }
+}
+
+export class ProjectApproved__Params {
+  _event: ProjectApproved;
+
+  constructor(event: ProjectApproved) {
+    this._event = event;
+  }
+
+  get timestamp(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+}
+
+export class ProjectCompleted extends ethereum.Event {
+  get params(): ProjectCompleted__Params {
+    return new ProjectCompleted__Params(this);
+  }
+}
+
+export class ProjectCompleted__Params {
+  _event: ProjectCompleted;
+
+  constructor(event: ProjectCompleted) {
+    this._event = event;
+  }
+
+  get recipient(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get amount(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+
+  get timestamp(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
+  }
+}
+
+export class RewardClaimed extends ethereum.Event {
+  get params(): RewardClaimed__Params {
+    return new RewardClaimed__Params(this);
+  }
+}
+
+export class RewardClaimed__Params {
+  _event: RewardClaimed;
+
+  constructor(event: RewardClaimed) {
+    this._event = event;
+  }
+
+  get contributor(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get tokenId(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+
+  get tokenURI(): string {
+    return this._event.parameters[2].value.toString();
+  }
+
+  get timestamp(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
   }
 }
 

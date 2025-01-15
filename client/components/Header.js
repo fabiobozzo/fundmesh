@@ -36,6 +36,30 @@ const LayoutHeader = () => {
     };
 
     getAccounts();
+
+    // Listen for account changes in MetaMask
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', (newAccounts) => {
+        if (newAccounts.length === 0) {
+          // User disconnected wallet
+          window.localStorage.setItem('web3Connected', 'false');
+          window.location.reload();
+        } else {
+          // User switched accounts in MetaMask
+          setAccounts(newAccounts);
+          window.location.reload();
+        }
+      });
+    }
+
+    // Cleanup listener
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener('accountsChanged', () => {
+          console.log('accounts changed listener removed');
+        });
+      }
+    };
   }, [web3]);
 
   return (
