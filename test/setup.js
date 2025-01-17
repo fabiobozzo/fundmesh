@@ -1,6 +1,7 @@
 const compiledProjectFactory = require('../build/ProjectFactory.json');
 const compiledProject = require('../build/Project.json');
 const compiledProjectNFT = require('../build/ProjectNFT.json');
+const compiledUserRegistry = require('../build/UserRegistry.json');
 
 const projectData = {
   minimumContribution: 100,
@@ -42,7 +43,17 @@ const setup = async (web3) => {
   projectNftAddress = await project.methods.nft().call();
   projectNft = await new web3.eth.Contract(compiledProjectNFT.abi, projectNftAddress);
 
-  return { accounts, projectFactory, project, projectNft };
+  userRegistry = await new web3.eth.Contract(compiledUserRegistry.abi)
+    .deploy({ data: compiledUserRegistry.evm.bytecode.object })
+    .send({ from: accounts[0], gas: '3000000' });
+
+  return { 
+    accounts, 
+    projectFactory, 
+    project, 
+    projectNft,
+    userRegistry
+  };
 };
 
 module.exports = { setup, projectData };

@@ -4,14 +4,16 @@ import { Icon, Menu, Modal, ModalContent, Header, Container } from 'semantic-ui-
 import { useWeb3, useConnectionStatus } from "@/web3/context";
 import { web3Errors } from "@/web3/lib";
 import { truncateEthAddress } from "@/utils/web3";
+import { UserRegistry } from '@/web3/contracts';
 
 const LayoutHeader = () => {
   const { web3, connectToWallet } = useWeb3();
   const connected = useConnectionStatus();
   const [accounts, setAccounts] = useState(null);
   const [noWalletErr, setNoWalletErr] = useState(false);
+  const [profile, setProfile] = useState(null);
 
-  const onConnectClick = async () => {
+  const onConnectClick = async (e) => {
     try {
       await connectToWallet();
     } catch (err) {
@@ -62,6 +64,50 @@ const LayoutHeader = () => {
     };
   }, [web3]);
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!web3 || !accounts) return;
+
+      try {
+        const userRegistry = UserRegistry(web3);
+        const hasProfile = await userRegistry.methods.hasProfile(accounts[0]).call();
+        if (hasProfile) {
+          const profileData = await userRegistry.methods.getProfile(accounts[0]).call();
+          if (profileData.exists) {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_IPFS_GW}/${profileData.profileCid}/profile.json`);
+            const data = await response.json();
+            console.log('profile', data);
+            setProfile(data);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+      }
+    };
+
+    fetchProfile();
+  }, [web3, accounts]);
+
+  const renderAccountInfo = () => {
+    if (!connected) {
+      return <a href="#" onClick={onConnectClick}>Connect Wallet</a>;
+    }
+    if (!accounts) {
+      return 'Connecting...';
+    }
+    return (
+      <>
+        <span>{truncateEthAddress(accounts[0])}</span>
+        <Link 
+          href='/profile' 
+          style={{ marginLeft: '10px', fontSize: '0.9em' }}
+        >
+          {profile ? `(${profile.name})` : '(create profile?)'}
+        </Link>
+      </>
+    );
+  };
+
   return (
     <div style={{ marginBottom: '20px' }}>
       <Menu style={{ marginTop: '10px' }}>
@@ -75,12 +121,10 @@ const LayoutHeader = () => {
           <Menu.Item>
             <Link href='/projects/me'>My Projects</Link>
           </Menu.Item>
-          <Menu.Item icon>
+          <Menu.Item>
             <Icon name="user" />
             <span style={{ marginLeft: '10px' }}>
-              {connected && accounts ? truncateEthAddress(accounts[0]) : ''}
-              {connected && !accounts ? 'Connecting...' : ''}
-              {!connected ? <Link href='#' onClick={onConnectClick}>Connect Wallet</Link> : ''}
+              {renderAccountInfo()}
             </span>
           </Menu.Item>
         </Menu.Menu>

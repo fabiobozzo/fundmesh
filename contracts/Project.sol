@@ -29,6 +29,11 @@ contract Project {
         _;
     }
 
+    modifier onlyRecipient() {
+        require(msg.sender == recipient);
+        _;
+    }
+
     constructor(
         uint _id,
         address _owner,
@@ -187,7 +192,7 @@ contract Project {
         );
     }
 
-    function withdraw() public restricted {
+    function withdraw() public onlyRecipient {
         // The project must be approved first and all milestones must be completed in order to withdraw its final value
         require(status.approved, "Project not approved");
         

@@ -34,6 +34,7 @@ const CreateProject = () => {
   const [nftContractAddress, setNftContractAddress] = useState('');
   const [nftTokenId, setNftTokenId] = useState('');
   const [isOwner, setIsOwner] = useState(false);
+  const [isRecipient, setIsRecipient] = useState(false);
 
   const dtFormatter = new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
@@ -51,6 +52,9 @@ const CreateProject = () => {
           const accounts = await web3.eth.getAccounts();
           const project = Project(web3, address);
           
+          const recipient = await project.methods.recipient().call();
+          setIsRecipient(recipient.toLowerCase() === accounts[0].toLowerCase());
+
           const owner = await project.methods.owner().call();
           setIsOwner(owner.toLowerCase() === accounts[0].toLowerCase());
 
@@ -116,7 +120,7 @@ const CreateProject = () => {
             setMetadata(await response.json());
           }
         } catch (err) {
-          console.error('Error fetching NFT details:', err);
+          console.error('Error fetching project details:', err);
           setError(err.message);
         } finally {
           setLoading(false);
@@ -333,7 +337,7 @@ const CreateProject = () => {
       }
 
       return (
-        <Button primary icon labelPosition='left' loading={tLoading} disabled={tLoading || isOwner} onClick={handleReward}>
+        <Button primary icon labelPosition='left' loading={tLoading} disabled={tLoading || isRecipient} onClick={handleReward}>
           <Icon name='gift' />Mint NFT
         </Button>
       );
@@ -343,7 +347,7 @@ const CreateProject = () => {
   };
 
   const renderWithdrawButton = () => {
-    if (!web3 || !isOwner || !summary[7]) {
+    if (!web3 || !isRecipient || !summary[7]) {
       return '';
     }
 
@@ -456,8 +460,8 @@ const CreateProject = () => {
                 <TableCell>
                   {summary[10]
                     ? <p><Icon loading name='checkmark' /> ({dtFormatter.format(new Date(Number(summary[11]) * 1000))})</p>
-                    : <p>No {summary[7] && isOwner 
-                        ? <span style={{ color: '#666', fontStyle: 'italic' }}>(waiting for the owner to withdraw funds)</span>
+                    : <p>No {summary[7] && isRecipient 
+                        ? <span style={{ color: '#666', fontStyle: 'italic' }}>(waiting for the recipient to withdraw funds)</span>
                         : ''}</p>
                   }
                 </TableCell>
