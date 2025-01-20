@@ -15,5 +15,7 @@ library Model {
         bool completed;
         uint completedAt;
         mapping(address => bool) rewards;
+        bool cancelled;
+        uint cancelledAt;
     }
 }

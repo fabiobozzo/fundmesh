@@ -6,6 +6,11 @@ import "./Project.sol";
 contract ProjectFactory {
     address[] public deployedProjects;
     mapping(address => address[]) public userProjects;
+    address public owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
 
     event ProjectCreated(
         uint indexed id,
@@ -37,7 +42,8 @@ contract ProjectFactory {
                 targetContribution,
                 deadline,
                 nftNamePrefix,
-                nftSymbolPrefix
+                nftSymbolPrefix,
+                owner
             )
         );
 

@@ -170,6 +170,32 @@ export class ProjectApproved__Params {
   }
 }
 
+export class ProjectCancelled extends ethereum.Event {
+  get params(): ProjectCancelled__Params {
+    return new ProjectCancelled__Params(this);
+  }
+}
+
+export class ProjectCancelled__Params {
+  _event: ProjectCancelled;
+
+  constructor(event: ProjectCancelled) {
+    this._event = event;
+  }
+
+  get canceller(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get balance(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
+  }
+
+  get timestamp(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
+  }
+}
+
 export class ProjectCompleted extends ethereum.Event {
   get params(): ProjectCompleted__Params {
     return new ProjectCompleted__Params(this);
@@ -193,6 +219,28 @@ export class ProjectCompleted__Params {
 
   get timestamp(): BigInt {
     return this._event.parameters[2].value.toBigInt();
+  }
+}
+
+export class ProjectExpired extends ethereum.Event {
+  get params(): ProjectExpired__Params {
+    return new ProjectExpired__Params(this);
+  }
+}
+
+export class ProjectExpired__Params {
+  _event: ProjectExpired;
+
+  constructor(event: ProjectExpired) {
+    this._event = event;
+  }
+
+  get balance(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get timestamp(): BigInt {
+    return this._event.parameters[1].value.toBigInt();
   }
 }
 
@@ -264,6 +312,8 @@ export class Project__getSummaryResult {
   value9: BigInt;
   value10: boolean;
   value11: BigInt;
+  value12: boolean;
+  value13: BigInt;
 
   constructor(
     value0: BigInt,
@@ -278,6 +328,8 @@ export class Project__getSummaryResult {
     value9: BigInt,
     value10: boolean,
     value11: BigInt,
+    value12: boolean,
+    value13: BigInt,
   ) {
     this.value0 = value0;
     this.value1 = value1;
@@ -291,6 +343,8 @@ export class Project__getSummaryResult {
     this.value9 = value9;
     this.value10 = value10;
     this.value11 = value11;
+    this.value12 = value12;
+    this.value13 = value13;
   }
 
   toMap(): TypedMap<string, ethereum.Value> {
@@ -307,6 +361,8 @@ export class Project__getSummaryResult {
     map.set("value9", ethereum.Value.fromUnsignedBigInt(this.value9));
     map.set("value10", ethereum.Value.fromBoolean(this.value10));
     map.set("value11", ethereum.Value.fromUnsignedBigInt(this.value11));
+    map.set("value12", ethereum.Value.fromBoolean(this.value12));
+    map.set("value13", ethereum.Value.fromUnsignedBigInt(this.value13));
     return map;
   }
 
@@ -357,6 +413,14 @@ export class Project__getSummaryResult {
   getValue11(): BigInt {
     return this.value11;
   }
+
+  getValue12(): boolean {
+    return this.value12;
+  }
+
+  getValue13(): BigInt {
+    return this.value13;
+  }
 }
 
 export class Project__milestoneStatusesResult {
@@ -365,6 +429,8 @@ export class Project__milestoneStatusesResult {
   value2: BigInt;
   value3: boolean;
   value4: BigInt;
+  value5: boolean;
+  value6: BigInt;
 
   constructor(
     value0: boolean,
@@ -372,12 +438,16 @@ export class Project__milestoneStatusesResult {
     value2: BigInt,
     value3: boolean,
     value4: BigInt,
+    value5: boolean,
+    value6: BigInt,
   ) {
     this.value0 = value0;
     this.value1 = value1;
     this.value2 = value2;
     this.value3 = value3;
     this.value4 = value4;
+    this.value5 = value5;
+    this.value6 = value6;
   }
 
   toMap(): TypedMap<string, ethereum.Value> {
@@ -387,6 +457,8 @@ export class Project__milestoneStatusesResult {
     map.set("value2", ethereum.Value.fromUnsignedBigInt(this.value2));
     map.set("value3", ethereum.Value.fromBoolean(this.value3));
     map.set("value4", ethereum.Value.fromUnsignedBigInt(this.value4));
+    map.set("value5", ethereum.Value.fromBoolean(this.value5));
+    map.set("value6", ethereum.Value.fromUnsignedBigInt(this.value6));
     return map;
   }
 
@@ -408,6 +480,14 @@ export class Project__milestoneStatusesResult {
 
   getCompletedAt(): BigInt {
     return this.value4;
+  }
+
+  getCancelled(): boolean {
+    return this.value5;
+  }
+
+  getCancelledAt(): BigInt {
+    return this.value6;
   }
 }
 
@@ -449,6 +529,8 @@ export class Project__statusResult {
   value2: BigInt;
   value3: boolean;
   value4: BigInt;
+  value5: boolean;
+  value6: BigInt;
 
   constructor(
     value0: boolean,
@@ -456,12 +538,16 @@ export class Project__statusResult {
     value2: BigInt,
     value3: boolean,
     value4: BigInt,
+    value5: boolean,
+    value6: BigInt,
   ) {
     this.value0 = value0;
     this.value1 = value1;
     this.value2 = value2;
     this.value3 = value3;
     this.value4 = value4;
+    this.value5 = value5;
+    this.value6 = value6;
   }
 
   toMap(): TypedMap<string, ethereum.Value> {
@@ -471,6 +557,8 @@ export class Project__statusResult {
     map.set("value2", ethereum.Value.fromUnsignedBigInt(this.value2));
     map.set("value3", ethereum.Value.fromBoolean(this.value3));
     map.set("value4", ethereum.Value.fromUnsignedBigInt(this.value4));
+    map.set("value5", ethereum.Value.fromBoolean(this.value5));
+    map.set("value6", ethereum.Value.fromUnsignedBigInt(this.value6));
     return map;
   }
 
@@ -492,6 +580,14 @@ export class Project__statusResult {
 
   getCompletedAt(): BigInt {
     return this.value4;
+  }
+
+  getCancelled(): boolean {
+    return this.value5;
+  }
+
+  getCancelledAt(): BigInt {
+    return this.value6;
   }
 }
 
@@ -515,6 +611,29 @@ export class Project extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toString());
   }
 
+  contributorAddresses(param0: BigInt): Address {
+    let result = super.call(
+      "contributorAddresses",
+      "contributorAddresses(uint256):(address)",
+      [ethereum.Value.fromUnsignedBigInt(param0)],
+    );
+
+    return result[0].toAddress();
+  }
+
+  try_contributorAddresses(param0: BigInt): ethereum.CallResult<Address> {
+    let result = super.tryCall(
+      "contributorAddresses",
+      "contributorAddresses(uint256):(address)",
+      [ethereum.Value.fromUnsignedBigInt(param0)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toAddress());
+  }
+
   contributors(param0: Address): BigInt {
     let result = super.call("contributors", "contributors(address):(uint256)", [
       ethereum.Value.fromAddress(param0),
@@ -528,29 +647,6 @@ export class Project extends ethereum.SmartContract {
       "contributors",
       "contributors(address):(uint256)",
       [ethereum.Value.fromAddress(param0)],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
-  }
-
-  contributorsCount(): BigInt {
-    let result = super.call(
-      "contributorsCount",
-      "contributorsCount():(uint256)",
-      [],
-    );
-
-    return result[0].toBigInt();
-  }
-
-  try_contributorsCount(): ethereum.CallResult<BigInt> {
-    let result = super.tryCall(
-      "contributorsCount",
-      "contributorsCount():(uint256)",
-      [],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -674,7 +770,7 @@ export class Project extends ethereum.SmartContract {
   getSummary(): Project__getSummaryResult {
     let result = super.call(
       "getSummary",
-      "getSummary():(uint256,address,string,uint256,uint256,uint256,uint256,bool,uint256,uint256,bool,uint256)",
+      "getSummary():(uint256,address,string,uint256,uint256,uint256,uint256,bool,uint256,uint256,bool,uint256,bool,uint256)",
       [],
     );
 
@@ -691,13 +787,15 @@ export class Project extends ethereum.SmartContract {
       result[9].toBigInt(),
       result[10].toBoolean(),
       result[11].toBigInt(),
+      result[12].toBoolean(),
+      result[13].toBigInt(),
     );
   }
 
   try_getSummary(): ethereum.CallResult<Project__getSummaryResult> {
     let result = super.tryCall(
       "getSummary",
-      "getSummary():(uint256,address,string,uint256,uint256,uint256,uint256,bool,uint256,uint256,bool,uint256)",
+      "getSummary():(uint256,address,string,uint256,uint256,uint256,uint256,bool,uint256,uint256,bool,uint256,bool,uint256)",
       [],
     );
     if (result.reverted) {
@@ -718,6 +816,8 @@ export class Project extends ethereum.SmartContract {
         value[9].toBigInt(),
         value[10].toBoolean(),
         value[11].toBigInt(),
+        value[12].toBoolean(),
+        value[13].toBigInt(),
       ),
     );
   }
@@ -725,7 +825,7 @@ export class Project extends ethereum.SmartContract {
   milestoneStatuses(param0: BigInt): Project__milestoneStatusesResult {
     let result = super.call(
       "milestoneStatuses",
-      "milestoneStatuses(uint256):(bool,uint256,uint256,bool,uint256)",
+      "milestoneStatuses(uint256):(bool,uint256,uint256,bool,uint256,bool,uint256)",
       [ethereum.Value.fromUnsignedBigInt(param0)],
     );
 
@@ -735,6 +835,8 @@ export class Project extends ethereum.SmartContract {
       result[2].toBigInt(),
       result[3].toBoolean(),
       result[4].toBigInt(),
+      result[5].toBoolean(),
+      result[6].toBigInt(),
     );
   }
 
@@ -743,7 +845,7 @@ export class Project extends ethereum.SmartContract {
   ): ethereum.CallResult<Project__milestoneStatusesResult> {
     let result = super.tryCall(
       "milestoneStatuses",
-      "milestoneStatuses(uint256):(bool,uint256,uint256,bool,uint256)",
+      "milestoneStatuses(uint256):(bool,uint256,uint256,bool,uint256,bool,uint256)",
       [ethereum.Value.fromUnsignedBigInt(param0)],
     );
     if (result.reverted) {
@@ -757,6 +859,8 @@ export class Project extends ethereum.SmartContract {
         value[2].toBigInt(),
         value[3].toBoolean(),
         value[4].toBigInt(),
+        value[5].toBoolean(),
+        value[6].toBigInt(),
       ),
     );
   }
@@ -867,7 +971,7 @@ export class Project extends ethereum.SmartContract {
   status(): Project__statusResult {
     let result = super.call(
       "status",
-      "status():(bool,uint256,uint256,bool,uint256)",
+      "status():(bool,uint256,uint256,bool,uint256,bool,uint256)",
       [],
     );
 
@@ -877,13 +981,15 @@ export class Project extends ethereum.SmartContract {
       result[2].toBigInt(),
       result[3].toBoolean(),
       result[4].toBigInt(),
+      result[5].toBoolean(),
+      result[6].toBigInt(),
     );
   }
 
   try_status(): ethereum.CallResult<Project__statusResult> {
     let result = super.tryCall(
       "status",
-      "status():(bool,uint256,uint256,bool,uint256)",
+      "status():(bool,uint256,uint256,bool,uint256,bool,uint256)",
       [],
     );
     if (result.reverted) {
@@ -897,6 +1003,8 @@ export class Project extends ethereum.SmartContract {
         value[2].toBigInt(),
         value[3].toBoolean(),
         value[4].toBigInt(),
+        value[5].toBoolean(),
+        value[6].toBigInt(),
       ),
     );
   }
@@ -977,6 +1085,10 @@ export class ConstructorCall__Inputs {
   get nftSymbolPrefix(): string {
     return this._call.inputValues[8].value.toString();
   }
+
+  get _factoryOwner(): Address {
+    return this._call.inputValues[9].value.toAddress();
+  }
 }
 
 export class ConstructorCall__Outputs {
@@ -1039,6 +1151,32 @@ export class ApproveMilestoneCall__Outputs {
   _call: ApproveMilestoneCall;
 
   constructor(call: ApproveMilestoneCall) {
+    this._call = call;
+  }
+}
+
+export class CancelCall extends ethereum.Call {
+  get inputs(): CancelCall__Inputs {
+    return new CancelCall__Inputs(this);
+  }
+
+  get outputs(): CancelCall__Outputs {
+    return new CancelCall__Outputs(this);
+  }
+}
+
+export class CancelCall__Inputs {
+  _call: CancelCall;
+
+  constructor(call: CancelCall) {
+    this._call = call;
+  }
+}
+
+export class CancelCall__Outputs {
+  _call: CancelCall;
+
+  constructor(call: CancelCall) {
     this._call = call;
   }
 }
@@ -1141,6 +1279,32 @@ export class CreateMilestonesCall__Outputs {
   _call: CreateMilestonesCall;
 
   constructor(call: CreateMilestonesCall) {
+    this._call = call;
+  }
+}
+
+export class ExpireCall extends ethereum.Call {
+  get inputs(): ExpireCall__Inputs {
+    return new ExpireCall__Inputs(this);
+  }
+
+  get outputs(): ExpireCall__Outputs {
+    return new ExpireCall__Outputs(this);
+  }
+}
+
+export class ExpireCall__Inputs {
+  _call: ExpireCall;
+
+  constructor(call: ExpireCall) {
+    this._call = call;
+  }
+}
+
+export class ExpireCall__Outputs {
+  _call: ExpireCall;
+
+  constructor(call: ExpireCall) {
     this._call = call;
   }
 }

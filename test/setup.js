@@ -12,13 +12,13 @@ const projectData = {
   cid: 'bafyreicnokmhmrnlp2wjhyk2haep4tqxiptwfrp2rrs7rzq7uk766chqvq'
 };
 
-const setup = async (web3) => {
+const setup = async (web3, recipientIsOwner = false) => {
   accounts = await web3.eth.getAccounts();
-  projectData.recipient = accounts[1];
+  projectData.recipient = recipientIsOwner ? accounts[0] : accounts[1];
 
   projectFactory = await new web3.eth.Contract(compiledProjectFactory.abi)
     .deploy({ data: compiledProjectFactory.evm.bytecode.object })
-    .send({ from: accounts[0], gas: '4000000' });
+    .send({ from: accounts[0], gas: '6000000' });
 
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + 7);
@@ -34,7 +34,7 @@ const setup = async (web3) => {
       'name-',
       'symbol-'
     )
-    .send({ from: accounts[0], gas: '4000000' });
+    .send({ from: accounts[0], gas: '6000000' });
 
   let projectAddress;
   [projectAddress] = await projectFactory.methods.getDeployedProjects().call();
@@ -45,14 +45,18 @@ const setup = async (web3) => {
 
   userRegistry = await new web3.eth.Contract(compiledUserRegistry.abi)
     .deploy({ data: compiledUserRegistry.evm.bytecode.object })
-    .send({ from: accounts[0], gas: '3000000' });
+    .send({ from: accounts[0], gas: '4000000' });
+
+  // Get factory owner for tests
+  const factoryOwner = await projectFactory.methods.owner().call();
 
   return { 
     accounts, 
     projectFactory, 
     project, 
     projectNft,
-    userRegistry
+    userRegistry,
+    factoryOwner
   };
 };
 

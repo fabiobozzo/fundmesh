@@ -25,6 +25,12 @@ const formatDeadline = (timestamp) => {
   return `${hours}h left`;
 };
 
+export const getEtherscanUrl = (address) => {
+  const network = process.env.NEXT_PUBLIC_NETWORK_NAME || 'sepolia';
+  const baseUrl = network === 'mainnet' ? 'https://etherscan.io' : `https://${network}.etherscan.io`;
+  return `${baseUrl}/address/${address}`;
+};
+
 export {
   truncateEthAddress,
   formatEther,

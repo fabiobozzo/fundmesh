@@ -1,0 +1,10 @@
+const GAS = {
+  DEFAULT: '140000',
+  DEPLOY: '6000000',
+  MILESTONE: '300000',
+  WITHDRAW: '2000000',
+  EXPIRE: '3000000',
+  REWARD: '300000'
+};
+
+module.exports = { GAS }; 

@@ -5,6 +5,7 @@ import { useWeb3 } from '@/web3/context';
 import { Project, ProjectNFT } from '@/web3/contracts';
 import { Message, MessageHeader, TableCell, Segment, Dimmer, Image, Loader, Table, TableBody, TableRow, Grid, Icon, Divider, Button, Container, Form, Input, Dropdown, GridColumn, GridRow, FormField, Label } from 'semantic-ui-react';
 import VerticalSpacer from '@/components/VerticalSpacer';
+import UserProfile from '@/components/UserProfile';
 
 const CreateProject = () => {
   const router = useRouter();
@@ -13,7 +14,7 @@ const CreateProject = () => {
 
   const [values, setValues] = useState({
     amount: '',
-    unit: 'wei'
+    unit: 'eth'
   });
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({});
@@ -35,6 +36,7 @@ const CreateProject = () => {
   const [nftTokenId, setNftTokenId] = useState('');
   const [isOwner, setIsOwner] = useState(false);
   const [isRecipient, setIsRecipient] = useState(false);
+  const [owner, setOwner] = useState(null);
 
   const dtFormatter = new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
@@ -56,10 +58,13 @@ const CreateProject = () => {
           setIsRecipient(recipient.toLowerCase() === accounts[0].toLowerCase());
 
           const owner = await project.methods.owner().call();
+          setOwner(owner);
           setIsOwner(owner.toLowerCase() === accounts[0].toLowerCase());
 
           const summary = await project.methods.getSummary().call();
           setSummary(summary);
+
+          console.log('Summary:', summary);
 
           const contribution = await project.methods.getContribution(accounts[0]).call();
           setContribution(contribution);
@@ -224,6 +229,23 @@ const CreateProject = () => {
     }
   };
 
+  const handleCancel = async (e) => {
+    e.preventDefault();
+    
+    try {
+      setTLoading(true);
+      resetErrors();
+      const accounts = await web3.eth.getAccounts();
+      const project = Project(web3, address);
+      await project.methods.cancel().send({ from: accounts[0] });
+      router.reload();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setTLoading(false);
+    }
+  };
+
   const onChangeContribution = (e, { name, value }) => {
     setValues({ ...values, [name]: value });
   };
@@ -236,7 +258,7 @@ const CreateProject = () => {
   };
 
   const renderApprovalButton = () => {
-    if (summary[10]) {
+    if (summary[12] || summary[10]) {
       return '';
     }
 
@@ -277,6 +299,10 @@ const CreateProject = () => {
   };
 
   const renderRewardButton = () => {
+    if (summary[12]) {
+      return '';
+    }
+
     if (web3 && summary[0] !== undefined && summary[0] >= summary[4] && summary[7] && contribution > 0) {
       if (rewardTokenURI) {
         return (
@@ -347,7 +373,7 @@ const CreateProject = () => {
   };
 
   const renderWithdrawButton = () => {
-    if (!web3 || !isRecipient || !summary[7]) {
+    if (!web3 || !isRecipient || !summary[7] || summary[12]) {
       return '';
     }
 
@@ -371,14 +397,132 @@ const CreateProject = () => {
     );
   };
 
-  const renderCompletedBanner = () => {
-    if (!summary[10]) return null;
+  const renderCancelButton = () => {
+    if (!web3 || !isOwner || summary[7] || summary[10] || summary[12]) {
+      return '';
+    }
 
     return (
-      <Message info>
-        <Message.Header>🎉 Project Successfully Completed</Message.Header>
-        <p>This project has reached its goal, been approved by contributors, and funds have been withdrawn. No further actions are possible.</p>
-      </Message>
+      <Form onSubmit={handleCancel} error={!!error}>
+        <Button negative icon labelPosition='left' loading={tLoading} disabled={tLoading}>
+          <Icon name='cancel' />
+          Cancel Project
+        </Button>
+        <Message warning>
+          <Message.Header>Warning: This action cannot be undone!</Message.Header>
+          <p>Cancelling the project will automatically refund all contributors and permanently disable the project.</p>
+        </Message>
+        <Message error content={error} />
+      </Form>
+    );
+  };
+
+  const renderStatusBanner = () => {
+    if (summary[10]) {
+      return (
+        <Message positive>
+          <Message.Header>🎉 Project Successfully Completed</Message.Header>
+          <p>This project has reached its goal, been approved by contributors, and funds have been withdrawn.</p>
+        </Message>
+      );
+    }
+
+    if (summary[12]) {
+      return (
+        <Message warning>
+          <Message.Header>Project Cancelled</Message.Header>
+          <p>This project has been cancelled and all contributors have been refunded.</p>
+        </Message>
+      );
+    }
+
+    if (summary.expired) {
+      return (
+        <Message warning>
+          <Message.Header>Project Expired</Message.Header>
+          <p>This project did not reach its target by the deadline and all contributors have been refunded.</p>
+        </Message>
+      );
+    }
+
+    return null;
+  };
+
+  const renderProjectActions = () => {
+    const hasActions = (isRecipient && summary[7] && !summary[10]) || 
+                      (isOwner && !summary[7] && !summary[10] && !summary[12]);
+    
+    if (!hasActions) {
+      return null;
+    }
+
+    return (
+      <>
+        <Divider horizontal>Project Actions</Divider>
+        {renderWithdrawButton()}
+        <VerticalSpacer height="20px" />
+        {renderCancelButton()}
+      </>
+    );
+  };
+
+  const renderStatus = () => {
+    if (summary[12]) {
+      return (
+        <TableRow>
+          <TableCell>Status</TableCell>
+          <TableCell>
+            <Label color='red'>Cancelled</Label>
+            {summary[13] && <span> ({dtFormatter.format(new Date(Number(summary[13]) * 1000))})</span>}
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    if (summary[10]) {
+      return (
+        <TableRow>
+          <TableCell>Status</TableCell>
+          <TableCell>
+            <Label color='green'>Completed</Label>
+            {summary[11] && <span> ({dtFormatter.format(new Date(Number(summary[11]) * 1000))})</span>}
+          </TableCell>
+        </TableRow>
+      );
+    }
+
+    return (
+      <TableRow>
+        <TableCell>Status</TableCell>
+        <TableCell>
+          <Label color='blue'>Active</Label>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
+  const renderCreatorInfo = () => {
+    if (!summary[1] || !owner) return null;
+
+    const isOwnerRecipient = summary[1].toLowerCase() === owner.toLowerCase();
+    
+    return (
+      <>
+        {!isOwnerRecipient && (
+          <TableRow>
+            <TableCell>Created by</TableCell>
+            <TableCell>
+              <UserProfile web3={web3} address={owner} />
+            </TableCell>
+          </TableRow>
+        )}
+        <TableRow>
+          <TableCell>Recipient</TableCell>
+          <TableCell>
+            <UserProfile web3={web3} address={summary[1]} />
+          </TableCell>
+        </TableRow>
+      </>
     );
   };
 
@@ -386,10 +530,12 @@ const CreateProject = () => {
     <Layout>
       <h3>
         {metadata.name !== '' ? metadata.name : 'Project Details'}
-        {summary[10] && <Label color='grey' style={{ marginLeft: '10px' }}>Completed</Label>}
+        {summary[10] && <Label color='green' style={{ marginLeft: '10px' }}>Completed</Label>}
+        {summary[12] && <Label color='orange' style={{ marginLeft: '10px' }}>Cancelled</Label>}
+        {summary.expired && <Label color='grey' style={{ marginLeft: '10px' }}>Expired</Label>}
       </h3>
 
-      {renderCompletedBanner()}
+      {renderStatusBanner()}
 
       <Message hidden={error === ''} negative>
         <MessageHeader>An error has occurred while retrieving the project details.</MessageHeader>
@@ -413,10 +559,7 @@ const CreateProject = () => {
                 <TableCell>Description</TableCell>
                 <TableCell>{metadata.description}</TableCell>
               </TableRow>
-              <TableRow>
-                <TableCell>Recipient</TableCell>
-                <TableCell>{summary[1]}</TableCell>
-              </TableRow>
+              {renderCreatorInfo()}
               <TableRow>
                 <TableCell>Progress</TableCell>
                 <TableCell>
@@ -455,34 +598,24 @@ const CreateProject = () => {
                   }
                 </TableCell>
               </TableRow>
-              <TableRow>
-                <TableCell>Completed</TableCell>
-                <TableCell>
-                  {summary[10]
-                    ? <p><Icon loading name='checkmark' /> ({dtFormatter.format(new Date(Number(summary[11]) * 1000))})</p>
-                    : <p>No {summary[7] && isRecipient 
-                        ? <span style={{ color: '#666', fontStyle: 'italic' }}>(waiting for the recipient to withdraw funds)</span>
-                        : ''}</p>
-                  }
-                </TableCell>
-              </TableRow>
+              {renderStatus()}
             </TableBody>
           </Table>
         </Grid.Column>
       </Grid>
-      {!summary[10] && <Divider horizontal><Icon name='down arrow' /></Divider>}
+      {!summary[10] && !summary[12] && <Divider horizontal><Icon name='down arrow' /></Divider>}
       <Container textAlign='center'>
         <Grid>
           <GridRow centered columns={2}>
             <GridColumn textAlign='center'>
-              {!summary[10] && (
+              {!summary[10] && !summary[12] && (
                 <Form onSubmit={handleContribute} error={tContributeError !== ''}>
                   <FormField>
                     {web3 && summary[0] !== undefined && Number(summary[0]) < Number(summary[4]) ? (
                       <>
                         <Input
                           name='amount'
-                          label={<Dropdown name='unit' defaultValue={values.unit} onChange={onChangeContribution} options={[{ key: 'wei', value: 'wei', text: 'WEI' }, { key: 'eth', value: 'eth', text: 'ETH' }]} />}
+                          label={<Dropdown name='unit' defaultValue={values.unit} onChange={onChangeContribution} options={[{ key: 'eth', value: 'eth', text: 'ETH' }, { key: 'wei', value: 'wei', text: 'WEI' }]} />}
                           onChange={onChangeContribution}
                           labelPosition='right'
                           placeholder='0'
@@ -536,8 +669,7 @@ const CreateProject = () => {
                 </Message>
               </Form>
 
-              <VerticalSpacer height="20px" />
-              {renderWithdrawButton()}
+              {renderProjectActions()}
             </GridColumn>
           </GridRow>
         </Grid>

@@ -8,7 +8,7 @@ dataSources:
     name: ProjectFactory
     network: sepolia 
     source:
-      address: "0x7134Fc867A501FFd9950602062DbD508DaB9F8c2"
+      address: "0xD961AA4dE4b5C9EF9c088EF7aF669586DcfDD833"
       abi: ProjectFactory
       startBlock: 7416008 
     mapping:
@@ -54,6 +54,10 @@ templates:
           handler: handleProjectApproved
         - event: ProjectCompleted(indexed address,uint256,uint256)
           handler: handleProjectCompleted
+        - event: ProjectCancelled(indexed address,uint256,uint256)
+          handler: handleProjectCancelled
+        - event: ProjectExpired(uint256,uint256)
+          handler: handleProjectExpired
         - event: MilestoneApprovalSubmitted(indexed uint256,indexed address,uint256,uint256)
           handler: handleMilestoneApprovalSubmitted
         - event: MilestoneApproved(indexed uint256,uint256)

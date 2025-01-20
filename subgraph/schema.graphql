@@ -2,25 +2,28 @@ type Project @entity {
   id: ID!
   projectAddress: Bytes!
   owner: Bytes!
+  recipient: Bytes!
+  cid: String!
   name: String!
   description: String!
   imageCid: String!
-  cid: String!
   minimumContribution: BigInt!
   targetContribution: BigInt!
   deadline: BigInt!
-  contributorsCount: BigInt!
   currentBalance: BigInt!
-  progressRatio: BigDecimal!
-  trendingScore: BigDecimal!
-  createdAt: BigInt!
-  completed: Boolean!
-  completedAt: BigInt
+  contributorsCount: BigInt!
   approved: Boolean!
   approvedAt: BigInt
   approvalsCount: BigInt!
-  milestones: [Milestone!]! @derivedFrom(field: "project")
+  completed: Boolean!
+  completedAt: BigInt
+  cancelled: Boolean!
+  cancelledAt: BigInt
+  progressRatio: BigDecimal!
+  trendingScore: BigDecimal!
+  contributors: [Contributor!]! @derivedFrom(field: "project")
   activities: [Activity!]! @derivedFrom(field: "project")
+  createdAt: BigInt!
 }
 
 type Milestone @entity {
@@ -37,13 +40,34 @@ type Milestone @entity {
   completedAt: BigInt
 }
 
+enum ActivityType {
+  PROJECT_CREATED
+  CONTRIBUTION
+  APPROVAL_SUBMITTED
+  PROJECT_APPROVED
+  PROJECT_COMPLETED
+  PROJECT_CANCELLED
+  PROJECT_EXPIRED
+  MILESTONE_APPROVAL_SUBMITTED
+  MILESTONE_APPROVED
+  MILESTONE_COMPLETED
+  REWARD_CLAIMED
+}
+
 type Activity @entity {
   id: ID!
   project: Project!
-  type: String!  # PROJECT_CREATED, CONTRIBUTION, PROJECT_APPROVAL_SUBMITTED, PROJECT_APPROVED, PROJECT_COMPLETED, 
-                 # MILESTONE_APPROVAL_SUBMITTED, MILESTONE_APPROVED, MILESTONE_COMPLETED, REWARD_CLAIMED
-  actor: Bytes!  # address that triggered the activity
-  data: String!  # JSON string with activity-specific data
+  type: ActivityType!
+  from: Bytes
+  amount: BigInt
+  balance: BigInt
   timestamp: BigInt!
-  blockNumber: BigInt!
+}
+
+type Contributor @entity {
+  id: ID!
+  project: Project!
+  address: Bytes!
+  amount: BigInt!
+  timestamp: BigInt!
 }

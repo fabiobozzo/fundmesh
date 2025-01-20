@@ -12,83 +12,76 @@ export function handleProjectCreated(event: ProjectCreated): void {
   ])
 
   let project = new Project(event.params.projectAddress.toHexString())
+  let projectContract = ProjectContract.bind(event.params.projectAddress)
+  
+  // Required fields from event/contract
   project.projectAddress = event.params.projectAddress
   project.owner = event.params.owner
+  project.recipient = projectContract.recipient()
   project.cid = event.params.cid
+  project.minimumContribution = event.params.minimumContribution
+  project.targetContribution = event.params.targetContribution
+  project.deadline = event.params.deadline
+  
+  // Initialize numeric fields
+  project.currentBalance = BigInt.fromI32(0)
+  project.contributorsCount = BigInt.fromI32(0)
+  project.approvalsCount = BigInt.fromI32(0)
+  project.progressRatio = BigDecimal.fromString('0')
+  project.trendingScore = BigDecimal.fromString('0')
+  
+  // Initialize boolean fields
+  project.approved = false
+  project.completed = false
+  project.cancelled = false
+  
+  // Initialize timestamp fields
   project.createdAt = event.params.timestamp
-
-  // Try to fetch from IPFS multiple times
-  let attempts = 0;
-  let maxAttempts = 3;
-  let ipfsData: Bytes | null = null;
-
-  while (attempts < maxAttempts && ipfsData === null) {
-    ipfsData = ipfs.cat(event.params.cid + '/properties.json')
-    if (!ipfsData) {
-      log.warning('IPFS fetch attempt {} failed for {}', [attempts.toString(), event.params.cid])
-      attempts++
-    }
-  }
-
+  project.approvedAt = null
+  project.completedAt = null
+  project.cancelledAt = null
+  
+  // Initialize metadata fields with defaults
+  project.name = 'Untitled Project'
+  project.description = ''
+  project.imageCid = ''
+  
+  // Try to fetch metadata from IPFS
+  let ipfsData = ipfs.cat(event.params.cid + '/properties.json')
   if (ipfsData) {
-    log.info('IPFS data fetched successfully for {}', [event.params.cid])
     let metadata = json.fromBytes(ipfsData).toObject()
     
     let name = metadata.get('name')
     let description = metadata.get('description')
     let imageCid = metadata.get('imageCid')
 
-    log.info('Parsed metadata - name: {}, description: {}, imageCid: {}', [
-      name ? name.toString() : 'null',
-      description ? description.toString() : 'null',
-      imageCid ? imageCid.toString() : 'null'
-    ])
-
     if (name && !name.isNull()) {
       project.name = name.toString()
-    } else {
-      project.name = 'Untitled Project'
-      log.warning('Project name was null or empty for {}', [event.params.cid])
     }
-    
     if (description && !description.isNull()) {
       project.description = description.toString()
-    } else {
-      project.description = ''
-      log.warning('Project description was null for {}', [event.params.cid])
     }
-    
     if (imageCid && !imageCid.isNull()) {
       project.imageCid = imageCid.toString()
-      log.info('Setting imageCid to: {}', [imageCid.toString()])
-    } else {
-      project.imageCid = ''
-      log.warning('Project imageCid was null for {}', [event.params.cid])
     }
-  } else {
-    log.error('All IPFS fetch attempts failed for {}', [event.params.cid])
-    project.name = 'Untitled Project'
-    project.description = ''
-    project.imageCid = ''
   }
 
-  // Initialize project metrics
-  project.contributorsCount = BigInt.fromI32(0)
-  project.currentBalance = BigInt.fromI32(0)
-  project.minimumContribution = event.params.minimumContribution
-  project.targetContribution = event.params.targetContribution
-  project.deadline = event.params.deadline
-  project.progressRatio = BigDecimal.fromString('0')
-  project.trendingScore = BigDecimal.fromString('0')
-  project.completed = false
-  project.approved = false
-  project.approvalsCount = BigInt.fromI32(0)
+  project.save()
 
-  // Create template instance to track this project's events
+  // Create activity
+  let activity = new Activity(
+    event.transaction.hash.toHexString() + "-create"
+  )
+  activity.project = project.id
+  activity.type = "PROJECT_CREATED"
+  activity.from = event.params.owner
+  activity.timestamp = event.params.timestamp
+  activity.save()
+
+  // Create template instance
   ProjectTemplate.create(event.params.projectAddress)
 
   // Load initial milestones if any
-  let projectContract = ProjectContract.bind(event.params.projectAddress)
   let milestonesCount = projectContract.try_getMilestonesCount()
   
   if (!milestonesCount.reverted) {
@@ -122,18 +115,5 @@ export function handleProjectCreated(event: ProjectCreated): void {
     }
   }
 
-  // Create PROJECT_CREATED activity
-  let activity = new Activity(
-    event.transaction.hash.toHexString() + "-" + event.logIndex.toString()
-  )
-  activity.project = project.id
-  activity.type = "PROJECT_CREATED"
-  activity.actor = event.params.owner
-  activity.data = "{}"  // No additional data needed for creation
-  activity.timestamp = event.params.timestamp
-  activity.blockNumber = event.block.number
-  activity.save()
-
-  project.save()
   log.info('Project saved. ID: {}, Name: {}', [project.id, project.name])
 }

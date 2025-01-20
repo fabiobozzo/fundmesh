@@ -9,16 +9,17 @@ import "./ProjectNFT.sol";
 contract Project {
     uint private id;
     address public owner;
+    address private factoryOwner;
     address payable public recipient;
     string public cid;
     uint public minimumContribution;
     uint public targetContribution;
-    
     uint public deadline;
-    uint public contributorsCount;
-    mapping(address => uint) public contributors; // datetime of last contribution
-    Model.Status public status;
+    
+    address[] public contributorAddresses;
+    mapping(address => uint) public contributors; // amount contributed
 
+    Model.Status public status;
     Model.Milestone[] public milestones;
     Model.Status[] public milestoneStatuses;
 
@@ -43,7 +44,8 @@ contract Project {
         uint _targetContribution,
         uint _deadline,
         string memory nftNamePrefix,
-        string memory nftSymbolPrefix
+        string memory nftSymbolPrefix,
+        address _factoryOwner
     ) {
         id = _id;
         owner = _owner;
@@ -52,6 +54,7 @@ contract Project {
         targetContribution = _targetContribution;
         deadline = _deadline;
         recipient = payable(_recipient);
+        factoryOwner = _factoryOwner;
 
         nft = new ProjectNFT(
             address(this),
@@ -75,6 +78,8 @@ contract Project {
             uint,
             uint,
             bool,
+            uint,
+            bool,
             uint
         )
     {
@@ -85,12 +90,14 @@ contract Project {
             minimumContribution,
             targetContribution,
             deadline,
-            contributorsCount,
+            contributorAddresses.length,
             status.approved,
             status.approvedAt,
             status.approvalsCount,
             status.completed,
-            status.completedAt
+            status.completedAt,
+            status.cancelled,
+            status.cancelledAt
         );
     }
 
@@ -112,26 +119,22 @@ contract Project {
     }
 
     function contribute() public payable {
-        // The transaction value must be higher than the minimum contribution for this project
         require(msg.value >= minimumContribution, "Contribution below minimum");
-    
-        // Allow contributions up to target + minimum to handle rounding
         require(address(this).balance <= targetContribution + minimumContribution, "Contribution would exceed target");
-
-        // After the project deadline is past it is no longer possible to contribute to it
         require(block.timestamp < deadline);
 
         if (contributors[msg.sender] == 0) {
-            contributorsCount++;
+            contributorAddresses.push(msg.sender);
         }
 
-        contributors[msg.sender] = block.timestamp;
+        // Store the contribution amount instead of timestamp
+        contributors[msg.sender] = msg.value;  // Changed from block.timestamp to msg.value
 
         emit ContributionMade(
             msg.sender,
             msg.value,
             address(this).balance,
-            contributorsCount,
+            contributorAddresses.length,
             block.timestamp
         );
     }
@@ -163,7 +166,7 @@ contract Project {
         );
 
         // Quorum check
-        if (status.approvalsCount >= ((contributorsCount / 2) + 1)) {
+        if (status.approvalsCount >= ((contributorAddresses.length / 2) + 1)) {
             status.approved = true;
             status.approvedAt = block.timestamp;
             emit ProjectApproved(block.timestamp);
@@ -212,6 +215,46 @@ contract Project {
             address(this).balance,
             block.timestamp
         );
+    }
+
+    function _refundAll() private {
+        uint length = contributorAddresses.length;
+        unchecked {
+            for (uint i = 0; i < length; i++) {
+                address payable contributor = payable(contributorAddresses[i]);
+                uint amount = contributors[contributor];
+                if (amount > 0) {
+                    contributors[contributor] = 0;
+                    contributor.transfer(amount);
+                }
+            }
+        }
+    }
+
+    function cancel() public restricted {
+        require(!status.cancelled, "Project already cancelled");
+        require(!status.approved, "Project already approved");
+        require(block.timestamp < deadline, "Project already expired");
+        
+        status.cancelled = true;
+        status.cancelledAt = block.timestamp;
+        _refundAll();
+        
+        emit ProjectCancelled(msg.sender, address(this).balance, block.timestamp);
+    }
+
+    function expire() public {
+        require(msg.sender == factoryOwner, "Only factory owner can expire projects");
+        require(!status.cancelled, "Project already cancelled");
+        require(!status.approved, "Project already approved");
+        require(block.timestamp >= deadline, "Project deadline not reached");
+        require(address(this).balance < targetContribution, "Target contribution reached");
+
+        status.cancelled = true;
+        status.cancelledAt = block.timestamp;
+        _refundAll();
+        
+        emit ProjectExpired(address(this).balance, block.timestamp);
     }
 
     /*
@@ -295,7 +338,7 @@ contract Project {
             block.timestamp
         );
 
-        if (mStatus.approvalsCount >= ((contributorsCount / 2) + 1)) {
+        if (mStatus.approvalsCount >= ((contributorAddresses.length / 2) + 1)) {
             mStatus.approved = true;
             mStatus.approvedAt = block.timestamp;
             emit MilestoneApproved(index, block.timestamp);
@@ -382,6 +425,17 @@ contract Project {
         address indexed contributor,
         uint256 tokenId,
         string tokenURI,
+        uint timestamp
+    );
+
+    event ProjectCancelled(
+        address indexed canceller,
+        uint balance,
+        uint timestamp
+    );
+
+    event ProjectExpired(
+        uint balance,
         uint timestamp
     );
 }

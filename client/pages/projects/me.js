@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Grid, Button, CardGroup, Segment, Dimmer, Loader, Image, Message, MessageHeader, Card, Progress, Icon } from 'semantic-ui-react';
+import { Grid, Button, CardGroup, Segment, Dimmer, Loader, Image, Message, MessageHeader, Card, Progress, Icon, Label } from 'semantic-ui-react';
 import Layout from '@/components/Layout';
 import { truncateEthAddress, formatDeadline } from "@/utils/web3";
 import { formatETH } from '@/utils/currency';
@@ -36,6 +36,7 @@ const MyProjects = () => {
               progressRatio
               deadline
               completed
+              cancelled
             }
           }
         `;
@@ -93,16 +94,45 @@ const MyProjects = () => {
     
     return (
       <Card key={project.id} fluid style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <Image 
-          src={`${process.env.NEXT_PUBLIC_IPFS_GW}/${project.imageCid}`} 
-          wrapped 
-          ui={false}
-          style={{ 
-            height: '265px', 
-            objectFit: 'cover',
-            backgroundColor: '#f9f9f9'
-          }}
-        />
+        <div style={{ position: 'relative', height: '240px' }}>
+          <Image 
+            src={project.imageCid ? `${process.env.NEXT_PUBLIC_IPFS_GW}/${project.imageCid}` : '/placeholder.png'} 
+            style={{ 
+              height: '100%',
+              width: '100%',
+              objectFit: 'cover',
+              backgroundColor: '#f9f9f9'
+            }}
+          />
+          {project.completed && (
+            <Label 
+              color='green' 
+              size='small'
+              style={{ 
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                zIndex: 1
+              }}
+            >
+              ✓ Completed
+            </Label>
+          )}
+          {project.cancelled && (
+            <Label 
+              color='red' 
+              size='small'
+              style={{ 
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                zIndex: 1
+              }}
+            >
+              ✕ Cancelled
+            </Label>
+          )}
+        </div>
         <Card.Content style={{ padding: '1.5em' }}>
           <Card.Header>{project.name}</Card.Header>
           <Card.Meta>by {truncateEthAddress(project.owner)}</Card.Meta>
@@ -122,11 +152,11 @@ const MyProjects = () => {
             display: 'flex', 
             flexDirection: 'column',
             gap: '0.5em',
-            fontSize: '1.1em',
+            fontSize: '0.95em',
             marginBottom: '1em'
           }}>
-            <div>Raised: {formatETH(project.currentBalance)}</div>
-            <div>Goal: {formatETH(project.targetContribution)}</div>
+            <div>Raised: {formatETH(project.currentBalance, 9)} ETH</div>
+            <div>Goal: {formatETH(project.targetContribution, 9)} ETH</div>
           </div>
 
           <div style={{ 

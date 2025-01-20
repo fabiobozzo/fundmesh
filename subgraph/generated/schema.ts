@@ -76,6 +76,32 @@ export class Project extends Entity {
     this.set("owner", Value.fromBytes(value));
   }
 
+  get recipient(): Bytes {
+    let value = this.get("recipient");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set recipient(value: Bytes) {
+    this.set("recipient", Value.fromBytes(value));
+  }
+
+  get cid(): string {
+    let value = this.get("cid");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set cid(value: string) {
+    this.set("cid", Value.fromString(value));
+  }
+
   get name(): string {
     let value = this.get("name");
     if (!value || value.kind == ValueKind.NULL) {
@@ -113,19 +139,6 @@ export class Project extends Entity {
 
   set imageCid(value: string) {
     this.set("imageCid", Value.fromString(value));
-  }
-
-  get cid(): string {
-    let value = this.get("cid");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toString();
-    }
-  }
-
-  set cid(value: string) {
-    this.set("cid", Value.fromString(value));
   }
 
   get minimumContribution(): BigInt {
@@ -167,19 +180,6 @@ export class Project extends Entity {
     this.set("deadline", Value.fromBigInt(value));
   }
 
-  get contributorsCount(): BigInt {
-    let value = this.get("contributorsCount");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBigInt();
-    }
-  }
-
-  set contributorsCount(value: BigInt) {
-    this.set("contributorsCount", Value.fromBigInt(value));
-  }
-
   get currentBalance(): BigInt {
     let value = this.get("currentBalance");
     if (!value || value.kind == ValueKind.NULL) {
@@ -193,34 +193,8 @@ export class Project extends Entity {
     this.set("currentBalance", Value.fromBigInt(value));
   }
 
-  get progressRatio(): BigDecimal {
-    let value = this.get("progressRatio");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBigDecimal();
-    }
-  }
-
-  set progressRatio(value: BigDecimal) {
-    this.set("progressRatio", Value.fromBigDecimal(value));
-  }
-
-  get trendingScore(): BigDecimal {
-    let value = this.get("trendingScore");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
-    } else {
-      return value.toBigDecimal();
-    }
-  }
-
-  set trendingScore(value: BigDecimal) {
-    this.set("trendingScore", Value.fromBigDecimal(value));
-  }
-
-  get createdAt(): BigInt {
-    let value = this.get("createdAt");
+  get contributorsCount(): BigInt {
+    let value = this.get("contributorsCount");
     if (!value || value.kind == ValueKind.NULL) {
       throw new Error("Cannot return null for a required field.");
     } else {
@@ -228,38 +202,8 @@ export class Project extends Entity {
     }
   }
 
-  set createdAt(value: BigInt) {
-    this.set("createdAt", Value.fromBigInt(value));
-  }
-
-  get completed(): boolean {
-    let value = this.get("completed");
-    if (!value || value.kind == ValueKind.NULL) {
-      return false;
-    } else {
-      return value.toBoolean();
-    }
-  }
-
-  set completed(value: boolean) {
-    this.set("completed", Value.fromBoolean(value));
-  }
-
-  get completedAt(): BigInt | null {
-    let value = this.get("completedAt");
-    if (!value || value.kind == ValueKind.NULL) {
-      return null;
-    } else {
-      return value.toBigInt();
-    }
-  }
-
-  set completedAt(value: BigInt | null) {
-    if (!value) {
-      this.unset("completedAt");
-    } else {
-      this.set("completedAt", Value.fromBigInt(<BigInt>value));
-    }
+  set contributorsCount(value: BigInt) {
+    this.set("contributorsCount", Value.fromBigInt(value));
   }
 
   get approved(): boolean {
@@ -305,11 +249,97 @@ export class Project extends Entity {
     this.set("approvalsCount", Value.fromBigInt(value));
   }
 
-  get milestones(): MilestoneLoader {
-    return new MilestoneLoader(
+  get completed(): boolean {
+    let value = this.get("completed");
+    if (!value || value.kind == ValueKind.NULL) {
+      return false;
+    } else {
+      return value.toBoolean();
+    }
+  }
+
+  set completed(value: boolean) {
+    this.set("completed", Value.fromBoolean(value));
+  }
+
+  get completedAt(): BigInt | null {
+    let value = this.get("completedAt");
+    if (!value || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set completedAt(value: BigInt | null) {
+    if (!value) {
+      this.unset("completedAt");
+    } else {
+      this.set("completedAt", Value.fromBigInt(<BigInt>value));
+    }
+  }
+
+  get cancelled(): boolean {
+    let value = this.get("cancelled");
+    if (!value || value.kind == ValueKind.NULL) {
+      return false;
+    } else {
+      return value.toBoolean();
+    }
+  }
+
+  set cancelled(value: boolean) {
+    this.set("cancelled", Value.fromBoolean(value));
+  }
+
+  get cancelledAt(): BigInt | null {
+    let value = this.get("cancelledAt");
+    if (!value || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set cancelledAt(value: BigInt | null) {
+    if (!value) {
+      this.unset("cancelledAt");
+    } else {
+      this.set("cancelledAt", Value.fromBigInt(<BigInt>value));
+    }
+  }
+
+  get progressRatio(): BigDecimal {
+    let value = this.get("progressRatio");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigDecimal();
+    }
+  }
+
+  set progressRatio(value: BigDecimal) {
+    this.set("progressRatio", Value.fromBigDecimal(value));
+  }
+
+  get trendingScore(): BigDecimal {
+    let value = this.get("trendingScore");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigDecimal();
+    }
+  }
+
+  set trendingScore(value: BigDecimal) {
+    this.set("trendingScore", Value.fromBigDecimal(value));
+  }
+
+  get contributors(): ContributorLoader {
+    return new ContributorLoader(
       "Project",
       this.get("id")!.toString(),
-      "milestones",
+      "contributors",
     );
   }
 
@@ -319,6 +349,19 @@ export class Project extends Entity {
       this.get("id")!.toString(),
       "activities",
     );
+  }
+
+  get createdAt(): BigInt {
+    let value = this.get("createdAt");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set createdAt(value: BigInt) {
+    this.set("createdAt", Value.fromBigInt(value));
   }
 }
 
@@ -565,30 +608,55 @@ export class Activity extends Entity {
     this.set("type", Value.fromString(value));
   }
 
-  get actor(): Bytes {
-    let value = this.get("actor");
+  get from(): Bytes | null {
+    let value = this.get("from");
     if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
+      return null;
     } else {
       return value.toBytes();
     }
   }
 
-  set actor(value: Bytes) {
-    this.set("actor", Value.fromBytes(value));
-  }
-
-  get data(): string {
-    let value = this.get("data");
-    if (!value || value.kind == ValueKind.NULL) {
-      throw new Error("Cannot return null for a required field.");
+  set from(value: Bytes | null) {
+    if (!value) {
+      this.unset("from");
     } else {
-      return value.toString();
+      this.set("from", Value.fromBytes(<Bytes>value));
     }
   }
 
-  set data(value: string) {
-    this.set("data", Value.fromString(value));
+  get amount(): BigInt | null {
+    let value = this.get("amount");
+    if (!value || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set amount(value: BigInt | null) {
+    if (!value) {
+      this.unset("amount");
+    } else {
+      this.set("amount", Value.fromBigInt(<BigInt>value));
+    }
+  }
+
+  get balance(): BigInt | null {
+    let value = this.get("balance");
+    if (!value || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set balance(value: BigInt | null) {
+    if (!value) {
+      this.unset("balance");
+    } else {
+      this.set("balance", Value.fromBigInt(<BigInt>value));
+    }
   }
 
   get timestamp(): BigInt {
@@ -603,9 +671,77 @@ export class Activity extends Entity {
   set timestamp(value: BigInt) {
     this.set("timestamp", Value.fromBigInt(value));
   }
+}
 
-  get blockNumber(): BigInt {
-    let value = this.get("blockNumber");
+export class Contributor extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id != null, "Cannot save Contributor entity without an ID");
+    if (id) {
+      assert(
+        id.kind == ValueKind.STRING,
+        `Entities of type Contributor must have an ID of type String but the id '${id.displayData()}' is of type ${id.displayKind()}`,
+      );
+      store.set("Contributor", id.toString(), this);
+    }
+  }
+
+  static loadInBlock(id: string): Contributor | null {
+    return changetype<Contributor | null>(
+      store.get_in_block("Contributor", id),
+    );
+  }
+
+  static load(id: string): Contributor | null {
+    return changetype<Contributor | null>(store.get("Contributor", id));
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get project(): string {
+    let value = this.get("project");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toString();
+    }
+  }
+
+  set project(value: string) {
+    this.set("project", Value.fromString(value));
+  }
+
+  get address(): Bytes {
+    let value = this.get("address");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBytes();
+    }
+  }
+
+  set address(value: Bytes) {
+    this.set("address", Value.fromBytes(value));
+  }
+
+  get amount(): BigInt {
+    let value = this.get("amount");
     if (!value || value.kind == ValueKind.NULL) {
       throw new Error("Cannot return null for a required field.");
     } else {
@@ -613,12 +749,25 @@ export class Activity extends Entity {
     }
   }
 
-  set blockNumber(value: BigInt) {
-    this.set("blockNumber", Value.fromBigInt(value));
+  set amount(value: BigInt) {
+    this.set("amount", Value.fromBigInt(value));
+  }
+
+  get timestamp(): BigInt {
+    let value = this.get("timestamp");
+    if (!value || value.kind == ValueKind.NULL) {
+      throw new Error("Cannot return null for a required field.");
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set timestamp(value: BigInt) {
+    this.set("timestamp", Value.fromBigInt(value));
   }
 }
 
-export class MilestoneLoader extends Entity {
+export class ContributorLoader extends Entity {
   _entity: string;
   _field: string;
   _id: string;
@@ -630,9 +779,9 @@ export class MilestoneLoader extends Entity {
     this._field = field;
   }
 
-  load(): Milestone[] {
+  load(): Contributor[] {
     let value = store.loadRelated(this._entity, this._id, this._field);
-    return changetype<Milestone[]>(value);
+    return changetype<Contributor[]>(value);
   }
 }
 

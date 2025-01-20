@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Grid, Button, CardGroup, List, Divider, Segment, Dimmer, Loader, Image, Message, MessageHeader, Card, Label, Progress, Icon } from 'semantic-ui-react';
 import Layout from '../components/Layout';
-import { truncateEthAddress, formatEther, formatDeadline } from "@/utils/web3";
+import { truncateEthAddress, formatEther, formatDeadline, getEtherscanUrl } from "@/utils/web3";
 import { formatAmount, formatETH } from '@/utils/currency';
 import { formatDistance } from 'date-fns';
 
@@ -57,12 +57,13 @@ const Index = () => {
             progressRatio
             deadline
             completed
+            cancelled
           }
           latest: projects(
             first: 6,
             orderBy: createdAt,
             orderDirection: desc,
-            where: { completed: false }
+            where: { completed: false, cancelled: false }
           ) {
             id
             projectAddress
@@ -77,6 +78,7 @@ const Index = () => {
             progressRatio
             deadline
             completed
+            cancelled
           }
         }
       `;
@@ -88,6 +90,7 @@ const Index = () => {
       });
 
       const result = await response.json();
+      console.log('Result:', result);
 
       if (result.errors) {
         throw new Error(result.errors[0].message);
@@ -132,8 +135,9 @@ const Index = () => {
         ) {
           id
           type
-          actor
-          data
+          from
+          amount
+          balance
           timestamp
           project {
             id
@@ -205,96 +209,45 @@ const Index = () => {
   };
 
   const formatActivityText = (activity) => {
-    const data = JSON.parse(activity.data);
-    const actorAddress = activity.actor.toString();
-
+    const actor = activity.from ? (
+      <a href={getEtherscanUrl(activity.from)} target="_blank" rel="noopener noreferrer" style={{ color: '#1e88e5' }}>
+        {truncateEthAddress(activity.from)}
+      </a>
+    ) : 'Someone';
+    
+    const projectLink = activity.project ? (
+      <Link href={`/projects/${activity.project.projectAddress}`} style={{ color: '#1e88e5' }}>
+        {activity.project.name || 'Untitled Project'}
+      </Link>
+    ) : 'Unknown Project';
+    
+    const amount = activity.amount ? formatETH(activity.amount) : null;
+    
     switch (activity.type) {
       case 'PROJECT_CREATED':
-        return (
-          <>
-            <Link href={`https://sepolia.etherscan.io/address/${actorAddress}`} target="_blank">
-              {truncateEthAddress(actorAddress)}
-            </Link>
-            {' created project '}
-            <Link href={`/projects/${activity.project.projectAddress}`}>
-              {activity.project.name || truncateEthAddress(activity.project.projectAddress)}
-            </Link>
-          </>
-        );
+        return <>{actor} created {projectLink}</>;
       case 'CONTRIBUTION':
-        return (
-          <>
-            <Link href={`https://sepolia.etherscan.io/address/${actorAddress}`} target="_blank">
-              {truncateEthAddress(actorAddress)}
-            </Link>
-            {' contributed '}
-            {formatAmount(data.amount)}
-            {' to '}
-            <Link href={`/projects/${activity.project.projectAddress}`}>
-              {activity.project.name || truncateEthAddress(activity.project.projectAddress)}
-            </Link>
-          </>
-        );
-      case 'PROJECT_APPROVAL_SUBMITTED':
-        return (
-          <>
-            <Link href={`https://sepolia.etherscan.io/address/${actorAddress}`} target="_blank">
-              {truncateEthAddress(actorAddress)}
-            </Link>
-            {' submitted approval for '}
-            <Link href={`/projects/${activity.project.projectAddress}`}>
-              {activity.project.name || truncateEthAddress(activity.project.projectAddress)}
-            </Link>
-            <br />
-            <span style={{ color: '#666', fontSize: '0.9em' }}>
-              {`${data.approvalsCount} approvals so far`}
-            </span>
-          </>
-        );
-      case 'PROJECT_APPROVED':
-        return (
-          <>
-            <Link href={`/projects/${activity.project.projectAddress}`}>
-              {activity.project.name || truncateEthAddress(activity.project.projectAddress)}
-            </Link>
-            {' was approved! 🎉'}
-          </>
-        );
+        return <>{actor} contributed {amount} ETH to {projectLink}</>;
+      case 'PROJECT_CANCELLED':
+        return <>{actor} cancelled {projectLink}</>;
       case 'PROJECT_COMPLETED':
-        return (
-          <>
-            <Link href={`/projects/${activity.project.projectAddress}`}>
-              {activity.project.name || truncateEthAddress(activity.project.projectAddress)}
-            </Link>
-            {' completed with '}
-            {formatETH(data.amount)}
-            {' ETH 🎉'}
-          </>
-        );
+        return <>{actor} completed {projectLink}</>;
+      case 'PROJECT_APPROVAL_SUBMITTED':
+        return <>{actor} submitted approval for {projectLink}</>;
+      case 'PROJECT_APPROVED':
+        return <>{actor} approved {projectLink}</>;
       case 'MILESTONE_APPROVAL_SUBMITTED':
-        return `${actorAddress} submitted approval for milestone ${Number(data.milestoneIndex) + 1}`;
+        return <>{actor} submitted milestone approval for {projectLink}</>;
       case 'MILESTONE_APPROVED':
-        return `Milestone ${Number(data.milestoneIndex) + 1} approved`;
+        return <>Milestone approved for {projectLink}</>;
       case 'MILESTONE_COMPLETED':
-        return `Milestone ${Number(data.milestoneIndex) + 1} completed with ${formatETH(data.amount)} ETH`;
+        return <>Milestone completed for {projectLink} with {amount} ETH</>;
       case 'REWARD_CLAIMED':
-        return (
-          <>
-            <Link href={`https://sepolia.etherscan.io/address/${actorAddress}`} target="_blank">
-              {truncateEthAddress(actorAddress)}
-            </Link>
-            {' claimed NFT reward for '}
-            <Link href={`/projects/${activity.project.projectAddress}`}>
-              {activity.project.name || truncateEthAddress(activity.project.projectAddress)}
-            </Link>
-            <br />
-            <span style={{ color: '#666', fontSize: '0.9em' }}>
-              {`Token ID: ${data.tokenId}`}
-            </span>
-          </>
-        );
+        return <>{actor} claimed NFT reward for {projectLink}</>;
+      case 'PROJECT_EXPIRED':
+        return <>{projectLink} expired</>;
       default:
-        return 'Unknown activity';
+        return <>{actor} interacted with {projectLink}</>;
     }
   };
 
@@ -305,7 +258,7 @@ const Index = () => {
       <Card key={project.id} fluid style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
         <div style={{ position: 'relative', height: '240px' }}>
           <Image 
-            src={`${process.env.NEXT_PUBLIC_IPFS_GW}/${project.imageCid}`} 
+            src={project.imageCid ? `${process.env.NEXT_PUBLIC_IPFS_GW}/${project.imageCid}` : '/placeholder.png'} 
             style={{ 
               height: '100%',
               width: '100%',
@@ -327,37 +280,51 @@ const Index = () => {
               ✓ Completed
             </Label>
           )}
+          {project.cancelled && (
+            <Label 
+              color='red' 
+              size='small'
+              style={{ 
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                zIndex: 1
+              }}
+            >
+              ✕ Cancelled
+            </Label>
+          )}
         </div>
         <Card.Content style={{ padding: '1.5em' }}>
-          <Card.Header>{project.name}</Card.Header>
+          <Card.Header>
+            {project.name}
+          </Card.Header>
           <Card.Meta>by {truncateEthAddress(project.owner)}</Card.Meta>
           
-          {!project.completed && (
-            <Progress 
-              percent={progress} 
-              style={{ 
-                margin: '1em 0',
-                background: '#eee',
-                height: '8px'
-              }}
-              color='blue'
-              size='tiny'
-            />
-          )}
+          <Progress 
+            percent={progress} 
+            style={{ 
+              margin: '1em 0',
+              background: '#eee',
+              height: '8px'
+            }}
+            color={project.completed ? 'grey' : 'blue'}
+            size='tiny'
+          />
           
           <div style={{ 
             display: 'flex', 
             flexDirection: 'column',
             gap: '0.5em',
-            fontSize: '1.1em',
+            fontSize: '0.95em',
             marginBottom: '1em'
           }}>
             {project.completed ? (
-              <div>Total Raised: {formatETH(project.targetContribution)}</div>
+              <div>Total Raised: {formatETH(project.currentBalance, 9)} ETH</div>
             ) : (
               <>
-                <div>Raised: {formatETH(project.currentBalance)}</div>
-                <div>Goal: {formatETH(project.targetContribution)}</div>
+                <div>Raised: {formatETH(project.currentBalance, 9)} ETH</div>
+                <div>Goal: {formatETH(project.targetContribution, 9)} ETH</div>
               </>
             )}
           </div>
