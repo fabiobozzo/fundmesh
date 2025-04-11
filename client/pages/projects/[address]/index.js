@@ -3,11 +3,12 @@ import { useRouter } from 'next/router';
 import Layout from '@/components/Layout';
 import { useWeb3 } from '@/web3/context';
 import { Project, ProjectNFT } from '@/web3/contracts';
+import { uploadFiles } from '@/ipfs/client';
 import { Message, MessageHeader, TableCell, Segment, Dimmer, Image, Loader, Table, TableBody, TableRow, Grid, Icon, Divider, Button, Container, Form, Input, Dropdown, GridColumn, GridRow, FormField, Label } from 'semantic-ui-react';
 import VerticalSpacer from '@/components/VerticalSpacer';
 import UserProfile from '@/components/UserProfile';
 
-const CreateProject = () => {
+const ProjectDetails = () => {
   const router = useRouter();
   const { web3 } = useWeb3();
   const { address } = router.query;
@@ -192,24 +193,172 @@ const CreateProject = () => {
     }
   };
 
+  const generateNFTImage = async (templateMetadata, contributionTier, contributorNumber) => {
+    const baseImagePath = templateMetadata.image.replace('ipfs://', '');
+    
+    // Convert the base image to base64
+    const baseImageResponse = await fetch(`${process.env.NEXT_PUBLIC_IPFS_GW}/${baseImagePath}`);
+    const baseImageBlob = await baseImageResponse.blob();
+    const baseImageBase64 = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(baseImageBlob);
+    });
+
+    const tierColors = {
+      'Diamond': '#b9f2ff',
+      'Gold': '#ffd700',
+      'Silver': '#c0c0c0',
+      'Bronze': '#cd7f32'
+    };
+
+    const frameColor = tierColors[contributionTier];
+    
+    const svg = `<?xml version="1.0" encoding="UTF-8"?>
+      <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <!-- Project Image -->
+        <image x="10" y="10" width="380" height="380"
+               href="${baseImageBase64}" />
+        
+        <!-- Simple Frame -->
+        <rect x="5" y="5" width="390" height="390" 
+              fill="none" stroke="${frameColor}" stroke-width="5"
+              rx="10" ry="10" />
+        
+        <!-- Contributor Number -->
+        <text x="370" y="385" text-anchor="end" 
+              font-family="Arial" font-size="16" fill="${frameColor}">
+          #${contributorNumber}
+        </text>
+      </svg>`;
+
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    return new File([blob], 'nft.svg', { type: 'image/svg+xml' });
+  };
+
   const handleReward = async (e) => {
     e.preventDefault();
+    setTRewardError('');
+    setTRewarded(false);
+    setTLoading(true);
 
     try {
-      setTRewarded(false);
-      setTLoading(true);
-      resetErrors();
       const accounts = await web3.eth.getAccounts();
       const project = Project(web3, address);
-      const tokenURI = `ipfs://${summary[2]}/metadata.json`;
-      await project.methods.reward(tokenURI).send({ from: accounts[0], });
+      
+      // Fetch the template metadata
+      const response = await fetch(`${process.env.NEXT_PUBLIC_IPFS_GW}/${summary[2]}/metadata.json`);
+      const templateMetadata = await response.json();
+      
+      // Get contributor-specific data
+      const contribution = await project.methods.getContribution(accounts[0]).call();
+      
+      let contributorNumber = 0;
+      const totalContributors = Number(summary[6]);
+      for (let i = 0; i < totalContributors; i++) {
+        const contributor = await project.methods.contributorAddresses(i).call();
+        if (contributor.toLowerCase() === accounts[0].toLowerCase()) {
+          contributorNumber = i + 1;
+          break;
+        }
+      }
+      
+      const approvalTime = await project.methods.getApproval(accounts[0]).call();
+      console.log('Approval Time:', approvalTime);
+
+      const contributionAmount = web3.utils.fromWei(contribution, 'ether');
+      const targetAmount = web3.utils.fromWei(summary[4], 'ether');
+
+      // Generate personalized metadata
+      const personalizedMetadata = {
+        name: `${templateMetadata.name} Supporter #${contributorNumber}`,
+        description: `Commemorative NFT for supporting "${templateMetadata.name}". Contributed ${contributionAmount} ETH.`,
+        image: templateMetadata.image,
+        attributes: [
+          {
+            trait_type: "Contribution Tier",
+            value: getTier(contributionAmount, targetAmount)
+          },
+          {
+            trait_type: "Supporter Type",
+            value: getSupporterType(contributorNumber, summary[6])
+          },
+          {
+            trait_type: "Approval Status",
+            value: getApprovalStatus(approvalTime)
+          },
+          {
+            display_type: "number",
+            trait_type: "Contribution Amount",
+            value: Number(contributionAmount)
+          },
+          {
+            display_type: "number",
+            trait_type: "Supporter Number",
+            value: contributorNumber
+          }
+        ]
+      };
+
+      const nftImage = await generateNFTImage(
+        templateMetadata,
+        getTier(contributionAmount, targetAmount),
+        contributorNumber
+      );
+
+      // First, upload the image
+      const imageCid = await uploadFiles([
+        { 
+          path: '/image.svg',
+          content: [new Uint8Array(await nftImage.arrayBuffer())]
+        }
+      ]);
+
+      // Then create and upload the metadata with the correct image CID
+      const metadataCid = await uploadFiles([
+        { 
+          path: '/metadata.json',
+          content: [new TextEncoder().encode(JSON.stringify({
+            ...personalizedMetadata,
+            image: `ipfs://${imageCid}/image.svg`
+          }))]
+        }
+      ]);
+
+      const tokenURI = `ipfs://${metadataCid}/metadata.json`;
+      await project.methods.reward(tokenURI).send({ from: accounts[0] });
       setTRewarded(true);
       router.reload();
     } catch (err) {
+      console.error('Reward error:', err);
       setTRewardError(err.message);
     } finally {
       setTLoading(false);
     }
+  };
+
+  const getTier = (amount, target) => {
+    const contribution = Number(amount);
+    const targetAmount = Number(target);
+    const percentage = (contribution / targetAmount) * 100;
+    
+    if (percentage >= 20) return "Diamond";
+    if (percentage >= 10) return "Gold";
+    if (percentage >= 5) return "Silver";
+    return "Bronze";
+  };
+
+  const getSupporterType = (number, total) => {
+    if (number === 1) return "Pioneer";
+    if (number <= 3) return "Early Believer";
+    if (number <= total * 0.2) return "Early Supporter";
+    if (number <= total * 0.5) return "Core Supporter";
+    return "Valued Supporter";
+  };
+
+  const getApprovalStatus = (approvalTime) => {
+    if (!approvalTime || approvalTime === '0') return "Pending";
+    return "Project Approver";
   };
 
   const handleWithdraw = async (e) => {
@@ -678,4 +827,4 @@ const CreateProject = () => {
   );
 };
 
-export default CreateProject;
+export default ProjectDetails;

@@ -8,7 +8,7 @@ dataSources:
     name: ProjectFactory
     network: sepolia 
     source:
-      address: "0xD961AA4dE4b5C9EF9c088EF7aF669586DcfDD833"
+      address: "0x78caB003969157988B6591Fe97A1870a04DBc2f3"
       abi: ProjectFactory
       startBlock: 7416008 
     mapping:
