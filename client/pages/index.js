@@ -2,32 +2,17 @@ import React from "react";
 import { Container, Button, Header } from 'semantic-ui-react';
 import { useWeb3, useConnectionStatus } from '@/web3/context';
 import Layout from '@/components/Layout';
-import { useRouter } from 'next/router';
 
 const Landing = () => {
   const { connectToWallet } = useWeb3();
-  const connected = useConnectionStatus();
-  const router = useRouter();
 
   const handleConnect = async () => {
     try {
-      const success = await connectToWallet();
-      if (success) {
-        console.log('Connection successful, redirecting to dashboard');
-        router.push('/dashboard');
-      }
+      await connectToWallet();
     } catch (err) {
       console.error('Connection error:', err);
     }
   };
-
-  // If already connected, redirect to dashboard
-  React.useEffect(() => {
-    if (connected && router.pathname === '/') {
-      console.log('Already connected, redirecting to dashboard');
-      router.push('/dashboard');
-    }
-  }, [connected, router.pathname]);
 
   return (
     <Layout>

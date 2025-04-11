@@ -65,8 +65,6 @@ const ProjectDetails = () => {
           const summary = await project.methods.getSummary().call();
           setSummary(summary);
 
-          console.log('Summary:', summary);
-
           const contribution = await project.methods.getContribution(accounts[0]).call();
           setContribution(contribution);
 
@@ -74,14 +72,11 @@ const ProjectDetails = () => {
           setApproval(approval);
 
           const reward = await project.methods.getReward(accounts[0]).call();
-          console.log('Reward data:', reward);
 
           if (1 in reward) {
             setRewardTokenURI(reward[1]);
             const nftAddress = await project.methods.nft().call();
-            console.log('NFT Contract Address:', nftAddress);
             setNftContractAddress(nftAddress);
-            console.log('Token ID:', reward[0]);
             setNftTokenId(Number(reward[0]));
 
             const ipfsPath = reward[1].replace('ipfs://', '');

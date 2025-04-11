@@ -76,7 +76,6 @@ const LayoutHeader = () => {
           if (profileData.exists) {
             const response = await fetch(`${process.env.NEXT_PUBLIC_IPFS_GW}/${profileData.profileCid}/profile.json`);
             const data = await response.json();
-            console.log('profile', data);
             setProfile(data);
           }
         }
@@ -112,7 +111,7 @@ const LayoutHeader = () => {
     <div style={{ marginBottom: '20px' }}>
       <Menu style={{ marginTop: '10px' }}>
         <Menu.Item>
-          <Link href='/'>FundMesh</Link>
+          <Link href='/dashboard'>FundMesh</Link>
         </Menu.Item>
         <Menu.Menu position="right">
           <Menu.Item>

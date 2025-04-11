@@ -90,8 +90,6 @@ const Index = () => {
       });
 
       const result = await response.json();
-      console.log('Result:', result);
-
       if (result.errors) {
         throw new Error(result.errors[0].message);
       }
