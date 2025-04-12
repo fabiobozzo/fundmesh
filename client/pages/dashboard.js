@@ -263,6 +263,7 @@ const Index = () => {
               objectFit: 'cover',
               backgroundColor: '#f9f9f9'
             }}
+            alt={`Project: ${project.name}`}
           />
           {project.completed && (
             <Label 
@@ -402,7 +403,7 @@ const Index = () => {
               <Dimmer active inverted>
                 <Loader />
               </Dimmer>
-              <Image src='https://react.semantic-ui.com/images/wireframe/short-paragraph.png' />
+              <Image src='https://react.semantic-ui.com/images/wireframe/short-paragraph.png' alt="Empty projects" />
             </Segment>
           </Grid.Column>
           <Grid.Column width={1}>

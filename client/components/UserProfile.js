@@ -59,6 +59,7 @@ const UserProfile = ({ web3, address, label }) => {
               maxHeight: '200px',
               objectFit: 'cover'
             }} 
+            alt="User profile"
           />
         )}
         <div style={{ textAlign: 'center' }}>

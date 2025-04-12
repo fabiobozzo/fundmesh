@@ -38,7 +38,7 @@ const About = () => {
                 1. Browse and discover interesting projects
               </p>
               <p>
-                2. Contribute any amount above the project's minimum
+                2. Contribute any amount above the project&apos;s minimum
               </p>
               <p>
                 3. Vote to approve project milestones

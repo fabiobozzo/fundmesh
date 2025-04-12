@@ -105,7 +105,8 @@ const Landing = () => {
             maxWidth: '600px',
             margin: '2em auto 0',
           }}>
-            Launch your projects or support others with full transparency and milestone-based funding
+            Launch your projects or support others<br/>
+            Full transparency and milestone-based funding
           </p>
         </Container>
       </div>

@@ -111,7 +111,7 @@ const LayoutHeader = () => {
     <div style={{ marginBottom: '20px' }}>
       <Menu style={{ marginTop: '10px' }}>
         <Menu.Item>
-          <Link href='/dashboard'>FundMesh</Link>
+          <Link href='/dashboard'>Home</Link>
         </Menu.Item>
         <Menu.Menu position="right">
           <Menu.Item>

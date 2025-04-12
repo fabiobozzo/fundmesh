@@ -209,7 +209,7 @@ const MyProjects = () => {
             {!loading && projects.length === 0 ? (
               <Message info>
                 <MessageHeader>No projects found</MessageHeader>
-                <p>You haven't created any projects yet. 
+                <p>You haven&apos;t created any projects yet. 
                   <Link href="/projects/create"> Create your first project!</Link>
                 </p>
               </Message>

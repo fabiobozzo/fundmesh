@@ -443,69 +443,73 @@ const ProjectDetails = () => {
   };
 
   const renderRewardButton = () => {
+    // If project is cancelled, don't show anything
     if (summary[12]) {
       return '';
     }
 
-    if (web3 && summary[0] !== undefined && summary[0] >= summary[4] && summary[7] && contribution > 0) {
-      if (rewardTokenURI) {
-        return (
-          <>
-            <Message positive>
-              <Message.Header>🎉 Congratulations!</Message.Header>
-              <p>You've received an NFT reward for contributing to this project.</p>
-            </Message>
-            
-            <Segment>
-              <Grid>
-                <Grid.Row>
-                  <Grid.Column width={6}>
-                    {nftMetadata && nftMetadata.image && (
-                      <Image 
-                        src={nftMetadata.image} 
-                        size='small' 
-                        rounded
-                        style={{ 
-                          backgroundColor: '#f8f9fa',
-                          padding: '10px'
-                        }} 
-                      />
-                    )}
-                  </Grid.Column>
-                  <Grid.Column width={10}>
-                    {nftMetadata && (
-                      <>
-                        <p><strong>{nftMetadata.name}</strong></p>
-                        <p>{nftMetadata.description}</p>
-                        <div style={{ marginTop: '10px' }}>
-                          {nftTx && (
-                            <a 
-                              href={`https://sepolia.etherscan.io/tx/${nftTx}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ marginRight: '15px' }}
-                            >
-                              View on Etherscan <Icon name='external' />
-                            </a>
-                          )}
+    // If user has received an NFT reward, show it regardless of project state
+    if (rewardTokenURI) {
+      return (
+        <>
+          <Message positive>
+            <Message.Header>🎉 Commemorative NFT</Message.Header>
+            <p>You've received an NFT reward for contributing to this project.</p>
+          </Message>
+          
+          <Segment>
+            <Grid>
+              <Grid.Row>
+                <Grid.Column width={6}>
+                  {nftMetadata && nftMetadata.image && (
+                    <Image 
+                      src={nftMetadata.image} 
+                      size='small' 
+                      rounded
+                      style={{ 
+                        backgroundColor: '#f8f9fa',
+                        padding: '10px'
+                      }} 
+                      alt={nftMetadata?.name || "NFT Reward"} 
+                    />
+                  )}
+                </Grid.Column>
+                <Grid.Column width={10}>
+                  {nftMetadata && (
+                    <>
+                      <p><strong>{nftMetadata.name}</strong></p>
+                      <p>{nftMetadata.description}</p>
+                      <div style={{ marginTop: '10px' }}>
+                        {nftTx && (
                           <a 
-                            href={`https://testnets.opensea.io/assets/sepolia/${nftContractAddress}/${nftTokenId}`}
+                            href={`https://sepolia.etherscan.io/tx/${nftTx}`}
                             target="_blank"
                             rel="noopener noreferrer"
+                            style={{ marginRight: '15px' }}
                           >
-                            View on OpenSea <Icon name='external' />
+                            View on Etherscan <Icon name='external' />
                           </a>
-                        </div>
-                      </>
-                    )}
-                  </Grid.Column>
-                </Grid.Row>
-              </Grid>
-            </Segment>
-          </>
-        );
-      }
+                        )}
+                        <a 
+                          href={`https://testnets.opensea.io/assets/sepolia/${nftContractAddress}/${nftTokenId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          View on OpenSea <Icon name='external' />
+                        </a>
+                      </div>
+                    </>
+                  )}
+                </Grid.Column>
+              </Grid.Row>
+            </Grid>
+          </Segment>
+        </>
+      );
+    }
 
+    // Only show the mint button when project is funded, active, and user contributed
+    if (web3 && summary[0] !== undefined && summary[0] >= summary[4] && summary[7] && contribution > 0) {
       return (
         <Button primary icon labelPosition='left' loading={tLoading} disabled={tLoading || isRecipient} onClick={handleReward}>
           <Icon name='gift' />Mint NFT
@@ -689,12 +693,12 @@ const ProjectDetails = () => {
         <Dimmer active inverted>
           <Loader />
         </Dimmer>
-        <Image src='https://react.semantic-ui.com/images/wireframe/short-paragraph.png' />
+        <Image src='https://react.semantic-ui.com/images/wireframe/short-paragraph.png' alt="Loading" />
       </Segment>
 
       <Grid>
         <Grid.Column width={6} hidden={summary[2] === ''}>
-          <Image src={`${process.env.NEXT_PUBLIC_IPFS_GW}/${metadata.imageCid}`} size='medium' hidden={error !== '' || loading} />
+          <Image src={`${process.env.NEXT_PUBLIC_IPFS_GW}/${metadata.imageCid}`} size='medium' hidden={error !== '' || loading} alt="Project image" />
         </Grid.Column>
         <Grid.Column width={10}>
           <Table basic='very' celled collapsing hidden={error !== '' || loading}>
@@ -798,7 +802,7 @@ const ProjectDetails = () => {
                 <Message error content={tApproveError} />
                 <Message info hidden={!tApproved}>
                   <MessageHeader>Thank you!</MessageHeader>
-                  <p>Your approval to this project means a lot to the owner! ❤️</p>
+                  <p>Your approval to this project means a lot to the owner! 🧡</p>
                   <p>Once the majority of contributors will approve the project, you will be able to mint a commemorative NFT.</p>
                 </Message>
               </Form>
@@ -809,7 +813,7 @@ const ProjectDetails = () => {
                 <Message error content={tRewardError} />
                 <Message info hidden={!tRewarded}>
                   <MessageHeader>Thank you!</MessageHeader>
-                  <p>Here's a commemorative NFT to reward you for your commitment to this project!</p>
+                  <p>Here&apos;s a commemorative NFT to reward you for your commitment to this project!</p>
                 </Message>
               </Form>
 
