@@ -103,7 +103,7 @@ const Layout = (props) => {
   if (!isReallyConnected.current && !switchingAccounts) {
     return (
       <Dimmer active>
-        <Loader size='large'>Redirecting...</Loader>
+        <Loader size='large'></Loader>
       </Dimmer>
     );
   }

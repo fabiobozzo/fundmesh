@@ -1,21 +1,64 @@
-import React from "react";
-import { Container, Button, Header } from 'semantic-ui-react';
+import React, { useState } from "react";
+import { Container, Button, Header, Modal, Icon } from 'semantic-ui-react';
 import { useWeb3, useConnectionStatus } from '@/web3/context';
 import Layout from '@/components/Layout';
 
 const Landing = () => {
   const { connectToWallet } = useWeb3();
+  const [metamaskModalOpen, setMetamaskModalOpen] = useState(false);
 
   const handleConnect = async () => {
+    // Check if MetaMask is installed
+    if (typeof window !== 'undefined' && !window.ethereum) {
+      setMetamaskModalOpen(true);
+      return;
+    }
+    
     try {
       await connectToWallet();
     } catch (err) {
       console.error('Connection error:', err);
+      // If the error is about wallet not found, show the modal
+      if (err.message && err.message.includes('not found')) {
+        setMetamaskModalOpen(true);
+      }
     }
   };
 
   return (
     <Layout>
+      {/* MetaMask Not Found Modal */}
+      <Modal
+        open={metamaskModalOpen}
+        onClose={() => setMetamaskModalOpen(false)}
+        size="tiny"
+        dimmer="blurring"
+      >
+        <Modal.Header style={{ backgroundColor: '#1e3c72', color: 'white' }}>
+          <Icon name="warning circle" /> MetaMask Not Detected
+        </Modal.Header>
+        <Modal.Content>
+          <p>To use FundMesh, you need to install the MetaMask browser extension.</p>
+          <p>MetaMask is a secure wallet for accessing Ethereum-based applications.</p>
+        </Modal.Content>
+        <Modal.Actions>
+          <Button color="grey" onClick={() => setMetamaskModalOpen(false)}>
+            Cancel
+          </Button>
+          <Button 
+            color="blue" 
+            icon 
+            labelPosition="right" 
+            onClick={() => {
+              window.open('https://metamask.io/download/', '_blank');
+            }}
+          >
+            Install MetaMask
+            <Icon name="external" />
+          </Button>
+        </Modal.Actions>
+      </Modal>
+
       <div style={{
         position: 'fixed',
         top: 0,

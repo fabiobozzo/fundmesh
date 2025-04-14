@@ -7,7 +7,10 @@
     "test": "test"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "compile": "node scripts/compile.js",
+    "deploy": "node scripts/deploy.js",
+    "deploy:sepolia": "node scripts/deploy.js"
   },
   "repository": {
     "type": "git",
