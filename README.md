@@ -13,11 +13,22 @@ The platform introduces innovative trust mechanisms and milestone-based funding 
 
 ### Key Features
 
-- **Milestone-Based Funding**: Funds are released progressively as projects achieve community-approved milestones.
+- **Milestone-Based Funding**: (WIP) Funds are released progressively as projects achieve community-approved milestones.
 - **Community Governance**: Contributors vote on whether projects should receive their next funding tranche.
 - **NFT Rewards**: Contributors earn commemorative NFTs for projects they've helped succeed.
 - **Full Transparency**: All project funding and governance operates on-chain for complete transparency.
 - **No Platform Fees**: Direct creator-to-backer funding without intermediaries.
+
+> **Note:** The milestone-based funding feature is currently a work-in-progress and under active development.
+
+| Feature | Status |
+|---------|--------|
+| Project Creation | ✅ Implemented |
+| Basic Funding | ✅ Implemented |
+| NFT Rewards | ✅ Implemented |
+| User Profiles | ✅ Implemented |
+| Milestone-Based Funding | 🚧 In Progress |
+| Community Governance | 🚧 In Progress |
 
 ## Live Demo
 
